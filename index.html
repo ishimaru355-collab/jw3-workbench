@@ -73,8 +73,33 @@ table{width:100%;border-collapse:collapse}th,td{padding:11px 9px;border-bottom:1
 </section>
 
 <section class="page" id="analytics">
-<div class="panel"><div class="top"><div><h2>收益分析</h2><div class="sub">按收益来源统计；选择“其他”时可以在备注里写具体活动。</div></div></div>
-<div class="grid2"><div><div id="sourceList"></div></div><div class="donut-layout"><canvas id="donut" width="320" height="320"></canvas><div id="legend"></div></div></div></div>
+<!-- 新增：今日数据看板 -->
+<div class="cards" style="grid-template-columns: 1fr 1fr; margin-bottom:14px;">
+  <div class="card" style="border-left:4px solid #333;">
+    <div class="label">今日总收入（全角色汇总）</div>
+    <div class="value gold" id="anaGlobalIncome">0 金</div>
+  </div>
+  <div class="card" style="border-left:4px solid #333;">
+    <div class="label">今日收入（当前选中：<span id="anaRoleName" style="color:#333;font-weight:bold;">未选择</span>）</div>
+    <div class="value gold" id="anaRoleIncome">0 金</div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="top">
+    <div>
+      <h2>当前角色收益来源分析</h2>
+      <div class="sub">下方图表统计的是【当前选中角色】历史累计收益的来源占比。</div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div><div id="sourceList"></div></div>
+    <div class="donut-layout">
+      <canvas id="donut" width="320" height="320"></canvas>
+      <div id="legend"></div>
+    </div>
+  </div>
+</div>
 
 <div class="panel">
 <div class="top"><div><h2>全角色累计总收入</h2><div class="sub">所有角色历史累计收入排行。</div></div></div>
@@ -166,7 +191,6 @@ let data=loadData();
 let currentRole=localStorage.getItem("jw3_current_role_v2")||""; if(!data.roleSchools)data.roleSchools={}; if(!data.roleMinds)data.roleMinds={};
 let monthCursor=new Date(); monthCursor.setDate(1);
 
-// 修改角色状态记录
 let isEditingRole = false;
 let editOriginalName = "";
 
@@ -182,7 +206,6 @@ function money(n){return Number(n||0).toLocaleString("zh-CN",{maximumFractionDig
 function today(){return new Date().toISOString().slice(0,10)}
 function ensureRole(){if(currentRole)return true;addRole();return !!currentRole}
 
-// 新增角色
 function addRole(){
   isEditingRole = false;
   editOriginalName = "";
@@ -197,7 +220,6 @@ function addRole(){
   setTimeout(()=>roleNameInput.focus(),30);
 }
 
-// 编辑角色信息
 function openEditRoleModal(){
   if(!currentRole) return;
   isEditingRole = true;
@@ -216,7 +238,6 @@ function openEditRoleModal(){
 
 function closeRoleModal(){roleModal.style.display="none"}
 
-// 保存角色（新增或编辑）
 function saveRole(ev){
   ev.preventDefault();
   const newName = roleNameInput.value.trim();
@@ -225,17 +246,14 @@ function saveRole(ev){
   if(!newName) return;
 
   if (isEditingRole) {
-    // 编辑模式
     if (newName !== editOriginalName && data.roles.includes(newName)) {
       return alert("这个角色名已经存在");
     }
     
-    // 更新基本数据
     data.roles = data.roles.map(r => r === editOriginalName ? newName : r);
     data.roleSchools[newName] = school;
     data.roleMinds[newName] = mind;
     
-    // 如果改名字了，清理旧数据，并同步历史记录
     if (newName !== editOriginalName) {
       delete data.roleSchools[editOriginalName];
       delete data.roleMinds[editOriginalName];
@@ -248,9 +266,8 @@ function saveRole(ev){
     
     closeRoleModal();
     save();
-    showPage("roleDetail"); // 刷新详情页面
+    showPage("roleDetail");
   } else {
-    // 新增模式
     if(data.roles.includes(newName)) return alert("这个角色已经存在");
     data.roles.push(newName);
     data.roleSchools[newName] = school;
@@ -367,6 +384,17 @@ function renderRoleDetail(){
   detailRecords.innerHTML=rs.length?rs.map(e=>`<div class="kpi"><span>${esc(e.date)} · ${esc(e.source||"其他")}</span><b class="${e.type==="in"?"green":"red"}">${e.type==="in"?"+":"-"}${money(e.gold)}</b></div>`).join(""):'<div class="empty">暂无记录。</div>';
 }
 function renderAnalytics(){
+  const td = today();
+  
+  // 1. 计算并更新新增的两个今日数据卡片
+  const globalTodayInc = data.entries.filter(e => e.date === td && e.type === "in").reduce((s, e) => s + e.gold, 0);
+  document.getElementById("anaGlobalIncome").textContent = money(globalTodayInc);
+  
+  document.getElementById("anaRoleName").textContent = currentRole || "未选择";
+  const roleTodayInc = data.entries.filter(e => e.date === td && e.type === "in" && e.role === currentRole).reduce((s, e) => s + e.gold, 0);
+  document.getElementById("anaRoleIncome").textContent = money(roleTodayInc);
+
+  // 2. 下方原有逻辑：当前角色历史累计来源分析
   const map={};data.entries.filter(e=>e.type==="in"&&(!currentRole||e.role===currentRole)).forEach(e=>{
     let k=(e.source||"其他").trim()||"其他";
     if(k==="其他"&&e.note.trim())k=e.note.trim();
@@ -382,6 +410,7 @@ function renderAnalytics(){
     legend.innerHTML=items.map((x,n)=>`<div class="legend-row"><span class="legend-dot" style="background:${colors[n%colors.length]}"></span><span>${esc(x[0])}</span><b>${money(x[1])}</b></div>`).join("");
   }
 
+  // 3. 全角色累计排行
   const roleMap={};
   data.entries.filter(e=>e.type==="in").forEach(e=>{
     roleMap[e.role]=(roleMap[e.role]||0)+e.gold;
@@ -437,7 +466,7 @@ async function ocrImage(event) {
   const file = event.target.files[0];
   if (!file) return;
   const status = document.getElementById("ocrStatus");
-  status.textContent = "识别中，请稍候…（首次使用需下载语言包，约20MB）";
+  status.textContent = "正在识别图片中的金额，请稍候…";
   try {
     const worker = await Tesseract.createWorker('chi_sim+eng');
     const { data: { text } } = await worker.recognize(file);
