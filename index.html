@@ -43,7 +43,6 @@ table{width:100%;border-collapse:collapse}th,td{padding:11px 9px;border-bottom:1
 </nav>
 
 <section class="page" id="dashboard">
-<!-- 全局总收入看板 -->
 <div class="global-total">
 <div><div class="label">全角色今日总收入</div><div class="value" id="globalTodayIncome">0 金</div></div>
 <div class="muted" id="globalTodayRoles"></div>
@@ -76,6 +75,11 @@ table{width:100%;border-collapse:collapse}th,td{padding:11px 9px;border-bottom:1
 <section class="page" id="analytics">
 <div class="panel"><div class="top"><div><h2>收益分析</h2><div class="sub">按收益来源统计；选择“其他”时可以在备注里写具体活动。</div></div></div>
 <div class="grid2"><div><div id="sourceList"></div></div><div class="donut-layout"><canvas id="donut" width="320" height="320"></canvas><div id="legend"></div></div></div></div>
+
+<div class="panel">
+<div class="top"><div><h2>全角色累计总收入</h2><div class="sub">所有角色历史累计收入排行。</div></div></div>
+<div id="roleIncomeList"></div>
+</div>
 </section>
 
 <section class="page" id="calendar">
@@ -83,7 +87,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:11px 9px;border-bottom:1
 </section>
 
 <section class="page" id="roleDetail">
-<div class="panel"><div class="top"><div><h1 id="detailName">角色详情</h1><div class="sub" id="detailSchool">门派：未设置 · 该角色的全部收益、支出和打本/日常。</div></div><div class="actions"><button class="btn" onclick="showPage('dashboard')">返回</button><button class="btn" onclick="renameRole()">修改名称</button><button class="btn danger" onclick="deleteRole()">删除角色</button></div></div>
+<div class="panel"><div class="top"><div><h1 id="detailName">角色详情</h1><div class="sub" id="detailSchool">门派：未设置 · 该角色的全部收益、支出和打本/日常。</div></div><div class="actions"><button class="btn" onclick="showPage('dashboard')">返回</button><button class="btn" onclick="openEditRoleModal()">修改角色信息</button><button class="btn danger" onclick="deleteRole()">删除角色</button></div></div>
 <div class="cards"><div class="card"><div class="label">累计收入</div><div class="value gold" id="detailIn">0 金</div></div><div class="card"><div class="label">累计支出</div><div class="value red" id="detailOut">0 金</div></div><div class="card"><div class="label">累计净收益</div><div class="value green" id="detailNet">0 金</div></div><div class="card"><div class="label">记录数量</div><div class="value" id="detailCount">0</div></div></div>
 <div class="grid2"><div class="panel"><h2>打本 / 日常</h2><div id="detailTasks"></div></div><div class="panel"><h2>最近记录</h2><div id="detailRecords"></div></div></div>
 </div>
@@ -91,13 +95,13 @@ table{width:100%;border-collapse:collapse}th,td{padding:11px 9px;border-bottom:1
 </div>
 
 <div class="modal" id="roleModal"><div class="modal-box">
-<div class="top"><h2>创建角色</h2><button class="btn" onclick="closeRoleModal()">关闭</button></div>
+<div class="top"><h2 id="roleModalTitle">创建角色</h2><button class="btn" onclick="closeRoleModal()">关闭</button></div>
 <form onsubmit="saveRole(event)">
 <div class="field"><label>角色名称</label><input id="roleNameInput" required placeholder=""></div>
 <div class="field" style="margin-top:13px"><label>门派</label><select id="roleSchoolInput" onchange="updateMindSelect()"></select></div>
 <div class="field" style="margin-top:13px"><label>心法</label><select id="roleMindInput"></select></div>
 
-<div class="actions" style="justify-content:flex-end;margin-top:15px"><button type="button" class="btn" onclick="closeRoleModal()">取消</button><button class="btn primary">创建角色</button></div>
+<div class="actions" style="justify-content:flex-end;margin-top:15px"><button type="button" class="btn" onclick="closeRoleModal()">取消</button><button id="roleSubmitBtn" class="btn primary">创建角色</button></div>
 </form></div></div>
 
 <div class="modal" id="entryModal"><div class="modal-box"><div class="top"><h2>登记收益 / 支出</h2><button class="btn" onclick="closeEntry()">关闭</button></div>
@@ -162,6 +166,10 @@ let data=loadData();
 let currentRole=localStorage.getItem("jw3_current_role_v2")||""; if(!data.roleSchools)data.roleSchools={}; if(!data.roleMinds)data.roleMinds={};
 let monthCursor=new Date(); monthCursor.setDate(1);
 
+// 修改角色状态记录
+let isEditingRole = false;
+let editOriginalName = "";
+
 function loadData(){
   try{
     const x=JSON.parse(localStorage.getItem(KEY)||"{}");
@@ -173,38 +181,89 @@ function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&l
 function money(n){return Number(n||0).toLocaleString("zh-CN",{maximumFractionDigits:2})+" 金"}
 function today(){return new Date().toISOString().slice(0,10)}
 function ensureRole(){if(currentRole)return true;addRole();return !!currentRole}
+
+// 新增角色
 function addRole(){
-  roleNameInput.value=""; roleSchoolInput.value="万灵山庄"; updateMindSelect();
+  isEditingRole = false;
+  editOriginalName = "";
+  document.getElementById("roleModalTitle").textContent = "创建角色";
+  document.getElementById("roleSubmitBtn").textContent = "创建角色";
+  
+  roleNameInput.value=""; 
+  roleSchoolInput.value="万灵山庄"; 
+  updateMindSelect();
+  
   roleModal.style.display="block";
   setTimeout(()=>roleNameInput.focus(),30);
 }
+
+// 编辑角色信息
+function openEditRoleModal(){
+  if(!currentRole) return;
+  isEditingRole = true;
+  editOriginalName = currentRole;
+  document.getElementById("roleModalTitle").textContent = "修改角色信息";
+  document.getElementById("roleSubmitBtn").textContent = "保存修改";
+  
+  roleNameInput.value = currentRole;
+  roleSchoolInput.value = data.roleSchools[currentRole] || "万灵山庄";
+  updateMindSelect();
+  roleMindInput.value = data.roleMinds[currentRole] || roleMindInput.options[0]?.value || "";
+  
+  roleModal.style.display = "block";
+  setTimeout(()=>roleNameInput.focus(),30);
+}
+
 function closeRoleModal(){roleModal.style.display="none"}
+
+// 保存角色（新增或编辑）
 function saveRole(ev){
   ev.preventDefault();
-  const name=roleNameInput.value.trim(), school=roleSchoolInput.value, mind=roleMindInput.value;
-  if(!name)return;
-  if(data.roles.includes(name))return alert("这个角色已经存在");
-  data.roles.push(name);
-  data.roleSchools[name]=school;
-  data.roleMinds[name]=mind;
-  currentRole=name;
-  closeRoleModal();
-  save();
+  const newName = roleNameInput.value.trim();
+  const school = roleSchoolInput.value;
+  const mind = roleMindInput.value;
+  if(!newName) return;
+
+  if (isEditingRole) {
+    // 编辑模式
+    if (newName !== editOriginalName && data.roles.includes(newName)) {
+      return alert("这个角色名已经存在");
+    }
+    
+    // 更新基本数据
+    data.roles = data.roles.map(r => r === editOriginalName ? newName : r);
+    data.roleSchools[newName] = school;
+    data.roleMinds[newName] = mind;
+    
+    // 如果改名字了，清理旧数据，并同步历史记录
+    if (newName !== editOriginalName) {
+      delete data.roleSchools[editOriginalName];
+      delete data.roleMinds[editOriginalName];
+      
+      data.entries.forEach(e => { if (e.role === editOriginalName) e.role = newName; });
+      data.tasks.forEach(t => { if (t.role === editOriginalName) t.role = newName; });
+      
+      currentRole = newName;
+    }
+    
+    closeRoleModal();
+    save();
+    showPage("roleDetail"); // 刷新详情页面
+  } else {
+    // 新增模式
+    if(data.roles.includes(newName)) return alert("这个角色已经存在");
+    data.roles.push(newName);
+    data.roleSchools[newName] = school;
+    data.roleMinds[newName] = mind;
+    currentRole = newName;
+    closeRoleModal();
+    save();
+  }
 }
+
 function selectRole(r){currentRole=r;save()}
 function openRoleDetail(r){currentRole=r;save();showPage("roleDetail")}
-function renameRole(){
-  if(!currentRole)return;
-  const n=prompt("修改角色名称",currentRole);if(!n)return;
-  const name=n.trim();if(!name||name===currentRole)return;
-  if(data.roles.includes(name))return alert("这个角色名已经存在");
-  data.roles=data.roles.map(x=>x===currentRole?name:x);
-  data.roleSchools[name]=data.roleSchools[currentRole]||"未设置"; delete data.roleSchools[currentRole];
-  data.roleMinds[name]=data.roleMinds[currentRole]||""; delete data.roleMinds[currentRole];
-  data.entries.forEach(e=>{if(e.role===currentRole)e.role=name});
-  data.tasks.forEach(t=>{if(t.role===currentRole)t.role=name});
-  currentRole=name;save();
-}
+
 function deleteRole(){
   if(!currentRole)return;
   if(!confirm("确定删除角色「"+currentRole+"」吗？\\n\\n该角色的收益、支出和打本/日常记录都会删除，无法恢复。"))return;
@@ -291,7 +350,6 @@ function renderDashboard(){
   const ym=today().slice(0,7),mi=es.filter(e=>e.date.startsWith(ym)&&e.type==="in").reduce((s,e)=>s+e.gold,0),mo=es.filter(e=>e.date.startsWith(ym)&&e.type==="out").reduce((s,e)=>s+e.gold,0);
   monthSummary.innerHTML=`<div class="grid3"><div><div class="label">本月收入</div><div class="value gold">${money(mi)}</div></div><div><div class="label">本月支出</div><div class="value red">${money(mo)}</div></div><div><div class="label">本月净收益</div><div class="value green">${money(mi-mo)}</div></div></div>`;
   
-  // 全局总收入看板
   const allTodayEntries = data.entries.filter(e=>e.date===td && e.type==="in");
   const allTodayIncome = allTodayEntries.reduce((s,e)=>s+e.gold,0);
   document.getElementById("globalTodayIncome").textContent = money(allTodayIncome);
@@ -317,11 +375,24 @@ function renderAnalytics(){
   const items=Object.entries(map).sort((a,b)=>b[1]-a[1]),total=items.reduce((s,x)=>s+x[1],0);
   sourceList.innerHTML=items.length?items.map(x=>`<div class="kpi"><span>${esc(x[0])}</span><b>${money(x[1])} · ${total?((x[1]/total)*100).toFixed(1):0}%</b></div>`).join(""):'<div class="empty">暂无收入数据。</div>';
   const c=document.getElementById("donut"),ctx=c.getContext("2d");ctx.clearRect(0,0,320,320);
-  if(!items.length){ctx.font="16px sans-serif";ctx.textAlign="center";ctx.fillText("暂无收益数据",160,160);legend.innerHTML="";return}
-  const colors=["#b88732","#268b57","#4f46e5","#06b6d4","#ef4444","#8b5cf6","#ec4899","#64748b"];let a=-Math.PI/2;
-  items.forEach((x,n)=>{let ang=x[1]/total*Math.PI*2;ctx.beginPath();ctx.moveTo(160,160);ctx.arc(160,160,115,a,a+ang);ctx.closePath();ctx.fillStyle=colors[n%colors.length];ctx.fill();a+=ang});
-  ctx.globalCompositeOperation="destination-out";ctx.beginPath();ctx.arc(160,160,62,0,Math.PI*2);ctx.fill();ctx.globalCompositeOperation="source-over";
-  legend.innerHTML=items.map((x,n)=>`<div class="legend-row"><span class="legend-dot" style="background:${colors[n%colors.length]}"></span><span>${esc(x[0])}</span><b>${money(x[1])}</b></div>`).join("");
+  if(!items.length){ctx.font="16px sans-serif";ctx.textAlign="center";ctx.fillText("暂无收益数据",160,160);legend.innerHTML="";} else {
+    const colors=["#b88732","#268b57","#4f46e5","#06b6d4","#ef4444","#8b5cf6","#ec4899","#64748b"];let a=-Math.PI/2;
+    items.forEach((x,n)=>{let ang=x[1]/total*Math.PI*2;ctx.beginPath();ctx.moveTo(160,160);ctx.arc(160,160,115,a,a+ang);ctx.closePath();ctx.fillStyle=colors[n%colors.length];ctx.fill();a+=ang});
+    ctx.globalCompositeOperation="destination-out";ctx.beginPath();ctx.arc(160,160,62,0,Math.PI*2);ctx.fill();ctx.globalCompositeOperation="source-over";
+    legend.innerHTML=items.map((x,n)=>`<div class="legend-row"><span class="legend-dot" style="background:${colors[n%colors.length]}"></span><span>${esc(x[0])}</span><b>${money(x[1])}</b></div>`).join("");
+  }
+
+  const roleMap={};
+  data.entries.filter(e=>e.type==="in").forEach(e=>{
+    roleMap[e.role]=(roleMap[e.role]||0)+e.gold;
+  });
+  const roleItems=Object.entries(roleMap).sort((a,b)=>b[1]-a[1]);
+  const roleEl=document.getElementById("roleIncomeList");
+  if(roleItems.length){
+    roleEl.innerHTML=roleItems.map(x=>`<div class="kpi"><span>${esc(x[0])}</span><b class="gold">${money(x[1])}</b></div>`).join("");
+  }else{
+    roleEl.innerHTML='<div class="empty">暂无角色收入数据。</div>';
+  }
 }
 function changeMonth(n){monthCursor.setMonth(monthCursor.getMonth()+n);renderCalendar()}
 function renderCalendar(){
@@ -329,7 +400,13 @@ function renderCalendar(){
   const first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate();let s="";
   ["日","一","二","三","四","五","六"].forEach(x=>s+=`<div class="day" style="min-height:35px;font-weight:700">${x}</div>`);
   for(let i=0;i<first;i++)s+='<div class="day"></div>';
-  for(let d=1;d<=days;d++){const date=y+"-"+String(m+1).padStart(2,"0")+"-"+String(d).padStart(2,"0");const es=data.entries.filter(e=>e.role===currentRole&&e.date===date),i=es.filter(e=>e.type==="in").reduce((a,e)=>a+e.gold,0),o=es.filter(e=>e.type==="out").reduce((a,e)=>a+e.gold,0);s+=`<div class="day"><div class="num">${d}</div>${i?`<div class="income">收入 ${money(i)}</div>`:""}${o?`<div class="expense">支出 ${money(o)}</div>`:""}${i||o?`<div class="net">净 ${money(i-o)}</div>`:""}</div>`}
+  for(let d=1;d<=days;d++){
+    const date=y+"-"+String(m+1).padStart(2,"0")+"-"+String(d).padStart(2,"0");
+    const es=data.entries.filter(e=>e.date===date);
+    const i=es.filter(e=>e.type==="in").reduce((a,e)=>a+e.gold,0);
+    const o=es.filter(e=>e.type==="out").reduce((a,e)=>a+e.gold,0);
+    s+=`<div class="day"><div class="num">${d}</div>${i?`<div class="income">收入 ${money(i)}</div>`:""}${o?`<div class="expense">支出 ${money(o)}</div>`:""}${i||o?`<div class="net">净 ${money(i-o)}</div>`:""}</div>`
+  }
   calendarGrid.innerHTML=s;
 }
 function exportData(){
@@ -356,7 +433,6 @@ function updateMindSelect(){
 }
 function renderAll(){renderRoleBar();renderDashboard();renderLedger();renderTasks();renderAnalytics();renderCalendar();renderRoleDetail()}
 
-// OCR 截图识别金额
 async function ocrImage(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -367,20 +443,16 @@ async function ocrImage(event) {
     const { data: { text } } = await worker.recognize(file);
     await worker.terminate();
     status.textContent = "识别完成，请核对金额";
-    // 解析文本中的砖/金/银
     let brick = 0, jin = 0, yin = 0;
-    // 匹配模式：数字 + 砖/金/银
     const brickMatch = text.match(/(\d+)\s*砖/);
     const jinMatch = text.match(/(\d+)\s*金/);
     const yinMatch = text.match(/(\d+)\s*银/);
     if (brickMatch) brick = parseInt(brickMatch[1]);
     if (jinMatch) jin = parseInt(jinMatch[1]);
     if (yinMatch) yin = parseInt(yinMatch[1]);
-    // 如果没匹配到单位，尝试提取所有数字并提示
     if (!brickMatch && !jinMatch && !yinMatch) {
       const nums = text.match(/\d+/g);
       if (nums && nums.length > 0) {
-        // 默认第一个数字为金，第二个为银
         jin = parseInt(nums[0]) || 0;
         if (nums.length > 1) yin = parseInt(nums[1]) || 0;
       }
@@ -389,7 +461,7 @@ async function ocrImage(event) {
     document.getElementById("entryGoldJin").value = jin || "";
     document.getElementById("entryGoldYin").value = yin || "";
     if (!brick && !jin && !yin) {
-      status.textContent = "未能自动识别金额，请手动填写。识别文本：" + text.slice(0, 100);
+      status.textContent = "未能自动识别金额，请手动填写。";
     }
   } catch (err) {
     console.error(err);
