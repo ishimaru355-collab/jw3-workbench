@@ -24,6 +24,8 @@ table{width:100%;border-collapse:collapse}th,td{padding:11px 9px;border-bottom:1
 .modal{display:none;position:fixed;inset:0;background:#0008;z-index:20;padding:30px}.modal-box{max-width:650px;margin:8vh auto;background:#fff;border-radius:14px;padding:20px;box-shadow:0 20px 60px #0005}
 .donut-layout{display:flex;align-items:center;justify-content:center;gap:35px;flex-wrap:wrap}.legend-row{display:flex;align-items:center;gap:8px;min-width:220px;margin:8px 0}.legend-row b{margin-left:auto}.legend-dot{width:10px;height:10px;border-radius:50%}
 .calendar-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.calendar{display:grid;grid-template-columns:repeat(7,1fr);border-top:1px solid #eee;border-left:1px solid #eee}.day{min-height:100px;border-right:1px solid #eee;border-bottom:1px solid #eee;padding:7px;font-size:12px}.day .num{font-weight:700}.day .income{color:#16834b;margin-top:7px}.day .expense{color:#b42318}.day .net{font-weight:700;margin-top:3px}
+.global-total{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.global-total .value{font-size:28px;font-weight:700;color:#a46b00}
 @media(max-width:850px){.cards{grid-template-columns:repeat(2,1fr)}.grid2,.grid3{grid-template-columns:1fr}.form{grid-template-columns:1fr}.app{padding:10px}.header{align-items:flex-start;flex-direction:column}.day{min-height:80px}}
 </style>
 </head>
@@ -41,6 +43,12 @@ table{width:100%;border-collapse:collapse}th,td{padding:11px 9px;border-bottom:1
 </nav>
 
 <section class="page" id="dashboard">
+<!-- 全局总收入看板 -->
+<div class="global-total">
+<div><div class="label">全角色今日总收入</div><div class="value" id="globalTodayIncome">0 金</div></div>
+<div class="muted" id="globalTodayRoles"></div>
+</div>
+
 <div class="cards">
 <div class="card"><div class="label">今日收入</div><div class="value gold" id="todayIncome">0 金</div></div>
 <div class="card"><div class="label">今日支出</div><div class="value red" id="todayExpense">0 金</div></div>
@@ -85,7 +93,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:11px 9px;border-bottom:1
 <div class="modal" id="roleModal"><div class="modal-box">
 <div class="top"><h2>创建角色</h2><button class="btn" onclick="closeRoleModal()">关闭</button></div>
 <form onsubmit="saveRole(event)">
-<div class="field"><label>角色名称</label><input id="roleNameInput" required placeholder="例如：氷川旭"></div>
+<div class="field"><label>角色名称</label><input id="roleNameInput" required placeholder=""></div>
 <div class="field" style="margin-top:13px"><label>门派</label><select id="roleSchoolInput" onchange="updateMindSelect()"></select></div>
 <div class="field" style="margin-top:13px"><label>心法</label><select id="roleMindInput"></select></div>
 
@@ -97,9 +105,20 @@ table{width:100%;border-collapse:collapse}th,td{padding:11px 9px;border-bottom:1
 <div class="field"><label>日期</label><input type="date" id="entryDate" required></div>
 <div class="field"><label>类型</label><select id="entryType"><option value="in">收入</option><option value="out">支出</option></select></div>
 <div class="field"><label>收益来源 / 活动</label><input id="entrySource" placeholder="例如：副本、日常、采集、材料出售、其他"></div>
-<div class="field"><label>金币</label><input type="number" min="0" step="0.01" id="entryGold" required></div>
+<div class="field"><label>金币（砖 / 金 / 银）</label>
+<div style="display:flex;gap:5px;align-items:center">
+<input type="number" min="0" step="1" id="entryGoldBrick" placeholder="砖" style="width:33%">
+<input type="number" min="0" step="1" id="entryGoldJin" placeholder="金" style="width:33%">
+<input type="number" min="0" step="0.01" id="entryGoldYin" placeholder="银" style="width:33%">
+</div>
+<div class="muted" style="font-size:11px;margin-top:3px">1砖=10000金，1金=100银，铜忽略</div>
+</div>
 <div class="field"><label>物品/说明</label><input id="entryItem" placeholder="可选"></div>
 <div class="field"><label>备注</label><input id="entryNote" placeholder="例如：帮人打本、某活动等"></div>
+<div class="full" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+<label class="btn" style="cursor:pointer;margin:0">📷 上传截图识别金额<input type="file" id="ocrFile" accept="image/*" hidden onchange="ocrImage(event)"></label>
+<span id="ocrStatus" class="muted" style="font-size:12px"></span>
+</div>
 <div class="full actions" style="justify-content:flex-end"><button type="button" class="btn" onclick="closeEntry()">取消</button><button class="btn primary">保存</button></div>
 </form></div></div>
 
@@ -112,10 +131,12 @@ table{width:100%;border-collapse:collapse}th,td{padding:11px 9px;border-bottom:1
 <div class="full actions" style="justify-content:flex-end"><button type="button" class="btn" onclick="closeTask()">取消</button><button class="btn primary">保存</button></div>
 </form></div></div>
 
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
 "use strict";
-const SCHOOLS=["万灵山庄","刀宗","北天药宗","衍天宗","凌雪阁","蓬莱","霸刀山庄","长歌门","苍云","丐帮","明教","唐门","五毒","藏剑山庄","天策府","纯阳宫","少林寺","七秀坊","万花谷"];
+const SCHOOLS=["段氏","万灵山庄","刀宗","北天药宗","衍天宗","凌雪阁","蓬莱","霸刀山庄","长歌门","苍云","丐帮","明教","唐门","五毒","藏剑山庄","天策府","纯阳宫","少林寺","七秀坊","万花谷"];
 const SCHOOL_MIND_MAP={
+  "段氏":["周天功"],
   "万灵山庄":["山海心诀"],
   "刀宗":["孤锋诀"],
   "北天药宗":["无方","灵素"],
@@ -205,13 +226,18 @@ document.querySelectorAll("#nav button").forEach(b=>b.onclick=()=>showPage(b.dat
 
 function openEntry(){
   if(!ensureRole())return;
-  entryDate.value=today();entryType.value="in";entrySource.value="";entryGold.value="";entryItem.value="";entryNote.value="";
+  entryDate.value=today();entryType.value="in";entrySource.value="";entryGoldBrick.value="";entryGoldJin.value="";entryGoldYin.value="";entryItem.value="";entryNote.value="";
+  document.getElementById("ocrStatus").textContent="";
   entryModal.style.display="block";
 }
 function closeEntry(){entryModal.style.display="none"}
 function saveEntry(ev){
   ev.preventDefault();
-  data.entries.push({id:Date.now().toString(),role:currentRole,date:entryDate.value,type:entryType.value,source:entrySource.value.trim(),gold:Number(entryGold.value||0),item:entryItem.value.trim(),note:entryNote.value.trim()});
+  const brick=Number(entryGoldBrick.value||0);
+  const jin=Number(entryGoldJin.value||0);
+  const yin=Number(entryGoldYin.value||0);
+  const totalGold = brick*10000 + jin + yin/100;
+  data.entries.push({id:Date.now().toString(),role:currentRole,date:entryDate.value,type:entryType.value,source:entrySource.value.trim(),gold:totalGold,item:entryItem.value.trim(),note:entryNote.value.trim()});
   save();closeEntry();
 }
 function deleteEntry(id){
@@ -264,6 +290,13 @@ function renderDashboard(){
   dashRecent.innerHTML=recent.length?recent.map(e=>`<div class="kpi"><span>${esc(e.date)} · ${esc(e.source||"其他")}</span><b class="${e.type==="in"?"green":"red"}">${e.type==="in"?"+":"-"}${money(e.gold)}</b></div>`).join(""):'<div class="empty">暂无记录。</div>';
   const ym=today().slice(0,7),mi=es.filter(e=>e.date.startsWith(ym)&&e.type==="in").reduce((s,e)=>s+e.gold,0),mo=es.filter(e=>e.date.startsWith(ym)&&e.type==="out").reduce((s,e)=>s+e.gold,0);
   monthSummary.innerHTML=`<div class="grid3"><div><div class="label">本月收入</div><div class="value gold">${money(mi)}</div></div><div><div class="label">本月支出</div><div class="value red">${money(mo)}</div></div><div><div class="label">本月净收益</div><div class="value green">${money(mi-mo)}</div></div></div>`;
+  
+  // 全局总收入看板
+  const allTodayEntries = data.entries.filter(e=>e.date===td && e.type==="in");
+  const allTodayIncome = allTodayEntries.reduce((s,e)=>s+e.gold,0);
+  document.getElementById("globalTodayIncome").textContent = money(allTodayIncome);
+  const roleCount = [...new Set(allTodayEntries.map(e=>e.role))].length;
+  document.getElementById("globalTodayRoles").textContent = roleCount ? `共 ${roleCount} 个角色有收入` : "今天还没有收入记录";
 }
 function renderRoleDetail(){
   if(!document.getElementById("detailName"))return;
@@ -322,6 +355,49 @@ function updateMindSelect(){
   roleMindInput.disabled=minds.length<=1;
 }
 function renderAll(){renderRoleBar();renderDashboard();renderLedger();renderTasks();renderAnalytics();renderCalendar();renderRoleDetail()}
+
+// OCR 截图识别金额
+async function ocrImage(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const status = document.getElementById("ocrStatus");
+  status.textContent = "识别中，请稍候…（首次使用需下载语言包，约20MB）";
+  try {
+    const worker = await Tesseract.createWorker('chi_sim+eng');
+    const { data: { text } } = await worker.recognize(file);
+    await worker.terminate();
+    status.textContent = "识别完成，请核对金额";
+    // 解析文本中的砖/金/银
+    let brick = 0, jin = 0, yin = 0;
+    // 匹配模式：数字 + 砖/金/银
+    const brickMatch = text.match(/(\d+)\s*砖/);
+    const jinMatch = text.match(/(\d+)\s*金/);
+    const yinMatch = text.match(/(\d+)\s*银/);
+    if (brickMatch) brick = parseInt(brickMatch[1]);
+    if (jinMatch) jin = parseInt(jinMatch[1]);
+    if (yinMatch) yin = parseInt(yinMatch[1]);
+    // 如果没匹配到单位，尝试提取所有数字并提示
+    if (!brickMatch && !jinMatch && !yinMatch) {
+      const nums = text.match(/\d+/g);
+      if (nums && nums.length > 0) {
+        // 默认第一个数字为金，第二个为银
+        jin = parseInt(nums[0]) || 0;
+        if (nums.length > 1) yin = parseInt(nums[1]) || 0;
+      }
+    }
+    document.getElementById("entryGoldBrick").value = brick || "";
+    document.getElementById("entryGoldJin").value = jin || "";
+    document.getElementById("entryGoldYin").value = yin || "";
+    if (!brick && !jin && !yin) {
+      status.textContent = "未能自动识别金额，请手动填写。识别文本：" + text.slice(0, 100);
+    }
+  } catch (err) {
+    console.error(err);
+    status.textContent = "识别失败，请手动填写金额。";
+  }
+  event.target.value = "";
+}
+
 initSchoolSelect();
 renderAll();showPage("dashboard");
 </script>
