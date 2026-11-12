@@ -23,10 +23,30 @@ table{width:100%;border-collapse:collapse}th,td{padding:11px 9px;border-bottom:1
 .task-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #eee}.task-row:last-child{border-bottom:0}
 .modal{display:none;position:fixed;inset:0;background:#0008;z-index:20;padding:30px}.modal-box{max-width:650px;margin:8vh auto;background:#fff;border-radius:14px;padding:20px;box-shadow:0 20px 60px #0005}
 .donut-layout{display:flex;align-items:center;justify-content:center;gap:35px;flex-wrap:wrap}.legend-row{display:flex;align-items:center;gap:8px;min-width:220px;margin:8px 0}.legend-row b{margin-left:auto}.legend-dot{width:10px;height:10px;border-radius:50%}
-.calendar-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.calendar{display:grid;grid-template-columns:repeat(7,1fr);border-top:1px solid #eee;border-left:1px solid #eee}.day{min-height:100px;border-right:1px solid #eee;border-bottom:1px solid #eee;padding:7px;font-size:12px}.day .num{font-weight:700}.day .income{color:#16834b;margin-top:7px}.day .expense{color:#b42318}.day .net{font-weight:700;margin-top:3px}
 .global-total{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
 .global-total .value{font-size:28px;font-weight:700;color:#a46b00}
-@media(max-width:850px){.cards{grid-template-columns:repeat(2,1fr)}.grid2,.grid3{grid-template-columns:1fr}.form{grid-template-columns:1fr}.app{padding:10px}.header{align-items:flex-start;flex-direction:column}.day{min-height:80px}}
+
+/* 打本/日常 分类样式 */
+.task-section{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:18px;margin-bottom:14px}
+.task-section h3{margin:0 0 12px;font-size:16px;border-left:4px solid #333;padding-left:10px}
+.task-group{margin-bottom:16px}
+.task-group:last-child{margin-bottom:0}
+.task-group-title{font-size:14px;font-weight:700;color:#555;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.task-list{display:flex;flex-wrap:wrap;gap:8px}
+.task-item{background:#f8f9fa;border:1px solid #e5e7eb;border-radius:8px;padding:8px 12px;font-size:13px;display:flex;align-items:center;gap:8px}
+.task-item.done{background:#e8f7ee;border-color:#a3d9b8;color:#16834b;text-decoration:line-through;opacity:0.8}
+.task-item .btn{padding:3px 8px;font-size:11px}
+
+/* 恢复原来的全尺寸日历样式 */
+.calendar-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding:0 10px;}
+.calendar{display:grid;grid-template-columns:repeat(7,1fr);border-top:1px solid #eee;border-left:1px solid #eee}
+.day{min-height:100px;border-right:1px solid #eee;border-bottom:1px solid #eee;padding:7px;font-size:12px;display:flex;flex-direction:column}
+.day .num{font-weight:700;font-size:14px;margin-bottom:4px}
+.day .income{color:#16834b;margin-top:4px}
+.day .expense{color:#b42318}
+.day .net{font-weight:700;margin-top:4px;border-top:1px dashed #eee;padding-top:2px}
+
+@media(max-width:850px){.cards{grid-template-columns:repeat(2,1fr)}.grid2,.grid3{grid-template-columns:1fr}.form{grid-template-columns:1fr}.app{padding:10px}.header{align-items:flex-start;flex-direction:column}.day{min-height:80px}.task-section{padding:12px}}
 </style>
 </head>
 <body>
@@ -67,39 +87,117 @@ table{width:100%;border-collapse:collapse}th,td{padding:11px 9px;border-bottom:1
 </section>
 
 <section class="page" id="tasks">
-<div class="panel"><div class="top"><div><h2>打本 / 日常完成情况</h2><div class="sub">不预设剑网3内容，项目名称由你自己添加。</div></div><button class="btn primary" onclick="openTask()">＋ 添加项目</button></div>
-<div class="filters"><select id="taskFilter" onchange="renderTasks()"><option value="">全部类型</option><option>日常</option><option>副本</option><option>周常</option><option>其他</option></select></div>
-<div id="taskTable"></div></div>
+<div class="top" style="margin-bottom:14px">
+  <div><h2>打本 / 日常</h2><div class="sub">按 PVE / PVP / PVX 分类，完成情况一目了然。</div></div>
+</div>
+
+<!-- PVE 副本 -->
+<div class="task-section">
+  <div class="top" style="margin-bottom:12px">
+    <h3>PVE 副本 / 挑战</h3>
+    <button class="btn primary" onclick="openTaskModal('pve')">＋ 自定义</button>
+  </div>
+  
+  <!-- 5人本 -->
+  <div class="task-group">
+    <div class="task-group-title">
+      <span>5人本（大战）· 每日刷新</span>
+      <span class="muted" style="font-weight:400;font-size:12px">CD：每天</span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+      <span class="muted" style="font-size:12px">当前大战本：</span>
+      <select id="fiveManSelect" style="width:auto;padding:5px 8px;font-size:12px" onchange="updateFiveManDaily()"></select>
+    </div>
+    <div class="task-list" id="taskList-5man"></div>
+  </div>
+
+  <!-- 10人本 -->
+  <div class="task-group">
+    <div class="task-group-title">
+      <span>10人本 · 周一 / 周五刷新</span>
+      <span class="muted" style="font-weight:400;font-size:12px">CD：一周两次</span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+      <span class="muted" style="font-size:12px">本周周常旧本（自己选）：</span>
+      <select id="tenManSelect1" style="width:auto;padding:5px 8px;font-size:12px;max-width:150px;"></select>
+      <select id="tenManSelect2" style="width:auto;padding:5px 8px;font-size:12px;max-width:150px;"></select>
+      <button class="btn" style="padding:4px 10px;font-size:12px" onclick="updateTenManWeekly()">保存选择</button>
+    </div>
+    <div class="task-list" id="taskList-10man"></div>
+  </div>
+
+  <!-- 25人本 -->
+  <div class="task-group">
+    <div class="task-group-title">
+      <span>25人本 · 每周刷新</span>
+      <span class="muted" style="font-weight:400;font-size:12px">CD：每周一次</span>
+    </div>
+    <div class="task-list" id="taskList-25man"></div>
+  </div>
+
+  <!-- PVE 挑战周常 -->
+  <div class="task-group">
+    <div class="task-group-title">
+      <span>PVE 挑战 · 每周刷新</span>
+      <span class="muted" style="font-weight:400;font-size:12px">CD：每周一次</span>
+    </div>
+    <div class="task-list" id="taskList-pve-challenge"></div>
+  </div>
+</div>
+
+<!-- PVP 玩法 -->
+<div class="task-section">
+  <div class="top" style="margin-bottom:12px">
+    <h3>PVP 阵营 / 竞技</h3>
+    <button class="btn primary" onclick="openTaskModal('pvp')">＋ 自定义</button>
+  </div>
+  <div class="task-group">
+    <div class="task-group-title"><span>日常 · 每天刷新</span></div>
+    <div class="task-list" id="taskList-pvp-daily"></div>
+  </div>
+  <div class="task-group" id="pvpWeeklyGroup">
+    <div class="task-group-title"><span>周常 · 每周刷新</span></div>
+    <div class="task-list" id="taskList-pvp-weekly"></div>
+  </div>
+</div>
+
+<!-- PVX 日常周常 -->
+<div class="task-section">
+  <div class="top" style="margin-bottom:12px">
+    <h3>PVX 休闲日常</h3>
+    <button class="btn primary" onclick="openTaskModal('pvx')">＋ 自定义</button>
+  </div>
+  <div class="task-group">
+    <div class="task-group-title"><span>日常 · 每天刷新</span></div>
+    <div class="task-list" id="taskList-pvx-daily"></div>
+  </div>
+  
+  <div class="task-group" id="customTaskGroup" style="display:none;">
+    <div class="task-group-title"><span>自定义项目</span></div>
+    <div class="task-list" id="taskList-custom"></div>
+  </div>
+</div>
 </section>
 
 <section class="page" id="analytics">
-<!-- 新增：今日数据看板 -->
-<div class="cards" style="grid-template-columns: 1fr 1fr; margin-bottom:14px;">
-  <div class="card" style="border-left:4px solid #333;">
-    <div class="label">今日总收入（全角色汇总）</div>
-    <div class="value gold" id="anaGlobalIncome">0 金</div>
+<div class="cards" style="grid-template-columns: 1fr 1fr 1fr; margin-bottom:14px;">
+  <div class="card" style="border-left:4px solid #f97316;">
+    <div class="label">本月总收入（全角色）</div>
+    <div class="value gold" id="anaGlobalMonthIncome">0 金</div>
   </div>
   <div class="card" style="border-left:4px solid #333;">
-    <div class="label">今日收入（当前选中：<span id="anaRoleName" style="color:#333;font-weight:bold;">未选择</span>）</div>
-    <div class="value gold" id="anaRoleIncome">0 金</div>
+    <div class="label">本月收入（当前角色）</div>
+    <div class="value gold" id="anaRoleMonthIncome">0 金</div>
+  </div>
+  <div class="card" style="border-left:4px solid #333;">
+    <div class="label">今日收入（当前角色）</div>
+    <div class="value gold" id="anaRoleTodayIncome">0 金</div>
   </div>
 </div>
 
 <div class="panel">
-  <div class="top">
-    <div>
-      <h2>当前角色收益来源分析</h2>
-      <div class="sub">下方图表统计的是【当前选中角色】历史累计收益的来源占比。</div>
-    </div>
-  </div>
-  <div class="grid2">
-    <div><div id="sourceList"></div></div>
-    <div class="donut-layout">
-      <canvas id="donut" width="320" height="320"></canvas>
-      <div id="legend"></div>
-    </div>
-  </div>
-</div>
+  <div class="top"><div><h2>当前角色收益来源分析</h2><div class="sub">下方图表统计的是【当前选中角色】历史累计收益的来源占比。</div></div></div>
+  <div class="grid2"><div><div id="sourceList"></div></div><div class="donut-layout"><canvas id="donut" width="320" height="320"></canvas><div id="legend"></div></div></div></div>
 
 <div class="panel">
 <div class="top"><div><h2>全角色累计总收入</h2><div class="sub">所有角色历史累计收入排行。</div></div></div>
@@ -107,8 +205,19 @@ table{width:100%;border-collapse:collapse}th,td{padding:11px 9px;border-bottom:1
 </div>
 </section>
 
+<!-- 恢复传统全尺寸月历，并在左侧加入月累计 -->
 <section class="page" id="calendar">
-<div class="panel"><div class="calendar-head"><button class="btn" onclick="changeMonth(-1)">‹</button><h2 id="monthTitle"></h2><button class="btn" onclick="changeMonth(1)">›</button></div><div class="calendar" id="calendarGrid"></div></div>
+<div class="panel">
+  <div class="calendar-head" style="display:flex; justify-content:space-between; align-items:center;">
+    <div style="display:flex; align-items:center; gap:15px;">
+      <button class="btn" onclick="changeMonth(-1)">‹</button>
+      <div style="font-size:16px; font-weight:bold; color:#f97316;" id="calMonthTotal">+0 金</div>
+    </div>
+    <h2 id="monthTitle" style="margin:0; flex:1; text-align:center;">2026年11月</h2>
+    <button class="btn" onclick="changeMonth(1)">›</button>
+  </div>
+  <div class="calendar" id="calendarGrid"></div>
+</div>
 </section>
 
 <section class="page" id="roleDetail">
@@ -125,7 +234,6 @@ table{width:100%;border-collapse:collapse}th,td{padding:11px 9px;border-bottom:1
 <div class="field"><label>角色名称</label><input id="roleNameInput" required placeholder=""></div>
 <div class="field" style="margin-top:13px"><label>门派</label><select id="roleSchoolInput" onchange="updateMindSelect()"></select></div>
 <div class="field" style="margin-top:13px"><label>心法</label><select id="roleMindInput"></select></div>
-
 <div class="actions" style="justify-content:flex-end;margin-top:15px"><button type="button" class="btn" onclick="closeRoleModal()">取消</button><button id="roleSubmitBtn" class="btn primary">创建角色</button></div>
 </form></div></div>
 
@@ -140,7 +248,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:11px 9px;border-bottom:1
 <input type="number" min="0" step="1" id="entryGoldJin" placeholder="金" style="width:33%">
 <input type="number" min="0" step="0.01" id="entryGoldYin" placeholder="银" style="width:33%">
 </div>
-<div class="muted" style="font-size:11px;margin-top:3px">1砖=10000金，1金=100银，铜忽略</div>
+<div class="muted" style="font-size:11px;margin-top:3px">建议截图截取“金币：xxx”这一行，识别更准</div>
 </div>
 <div class="field"><label>物品/说明</label><input id="entryItem" placeholder="可选"></div>
 <div class="field"><label>备注</label><input id="entryNote" placeholder="例如：帮人打本、某活动等"></div>
@@ -151,356 +259,663 @@ table{width:100%;border-collapse:collapse}th,td{padding:11px 9px;border-bottom:1
 <div class="full actions" style="justify-content:flex-end"><button type="button" class="btn" onclick="closeEntry()">取消</button><button class="btn primary">保存</button></div>
 </form></div></div>
 
-<div class="modal" id="taskModal"><div class="modal-box"><div class="top"><h2>添加打本 / 日常</h2><button class="btn" onclick="closeTask()">关闭</button></div>
-<form class="form" onsubmit="saveTask(event)">
-<div class="field"><label>项目名称</label><input id="taskName" required placeholder="例如：大战、茶馆、英雄副本"></div>
-<div class="field"><label>类型</label><select id="taskType"><option>日常</option><option>副本</option><option>周常</option><option>其他</option></select></div>
-<div class="field"><label>周期</label><select id="taskCycle"><option value="daily">每日</option><option value="weekly">每周</option><option value="once">不限周期</option></select></div>
+<div class="modal" id="taskModal"><div class="modal-box"><div class="top"><h2 id="taskModalTitle">添加自定义项目</h2><button class="btn" onclick="closeTaskModal()">关闭</button></div>
+<form class="form" onsubmit="saveCustomTask(event)">
+<div class="field"><label>项目名称</label><input id="taskName" required placeholder="例如：某个副本、某个日常"></div>
+<div class="field"><label>分类</label><select id="taskCategory"><option value="pve">PVE 挑战</option><option value="pvp">PVP 玩法</option><option value="pvx">PVX 日常</option></select></div>
+<div class="field" style="margin-top:13px"><label>刷新周期</label><select id="taskCycle"><option value="daily">每日</option><option value="weekly">每周</option><option value="once">不限周期</option></select></div>
 <div class="field full"><label>备注</label><textarea id="taskNote" placeholder="可选"></textarea></div>
-<div class="full actions" style="justify-content:flex-end"><button type="button" class="btn" onclick="closeTask()">取消</button><button class="btn primary">保存</button></div>
+<div class="full actions" style="justify-content:flex-end"><button type="button" class="btn" onclick="closeTaskModal()">取消</button><button class="btn primary">保存</button></div>
 </form></div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
 "use strict";
-const SCHOOLS=["段氏","万灵山庄","刀宗","北天药宗","衍天宗","凌雪阁","蓬莱","霸刀山庄","长歌门","苍云","丐帮","明教","唐门","五毒","藏剑山庄","天策府","纯阳宫","少林寺","七秀坊","万花谷"];
-const SCHOOL_MIND_MAP={
-  "段氏":["周天功"],
-  "万灵山庄":["山海心诀"],
-  "刀宗":["孤锋诀"],
-  "北天药宗":["无方","灵素"],
-  "衍天宗":["太玄经"],
-  "凌雪阁":["隐龙诀"],
-  "蓬莱":["凌海诀"],
-  "霸刀山庄":["北傲诀"],
-  "长歌门":["莫问","相知"],
-  "苍云":["分山劲","铁骨衣"],
-  "丐帮":["笑尘诀"],
-  "明教":["焚影圣诀","明尊琉璃体"],
-  "唐门":["惊羽诀","天罗诡道"],
-  "五毒":["毒经","补天诀"],
-  "藏剑山庄":["藏剑"],
-  "天策府":["傲血战意","铁牢律"],
-  "纯阳宫":["紫霞功","太虚剑意"],
-  "少林寺":["易筋经","洗髓经"],
-  "七秀坊":["冰心诀","云裳心经"],
-  "万花谷":["花间游","离经易道"]
+
+// ========== 沙箱环境兼容处理 ==========
+const originalAlert = window.alert;
+window.alert = function(msg) {
+  console.log("提示:", msg);
+  let t = document.getElementById('custom-toast');
+  if(!t) {
+    t = document.createElement('div');
+    t.id = 'custom-toast';
+    t.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 20px;border-radius:8px;z-index:9999;font-size:14px;opacity:0;transition:opacity 0.3s;pointer-events:none;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.style.opacity = '0'; }, 2500);
+};
+const originalConfirm = window.confirm;
+window.confirm = function(msg) {
+  try { return originalConfirm(msg); } 
+  catch(e) { console.warn("确认弹窗被沙箱拦截，已自动确认:", msg); return true; }
 };
 const KEY="jw3_free_workbench_v3";
-let data=loadData();
-let currentRole=localStorage.getItem("jw3_current_role_v2")||""; if(!data.roleSchools)data.roleSchools={}; if(!data.roleMinds)data.roleMinds={};
-let monthCursor=new Date(); monthCursor.setDate(1);
+let memoryStore = {};
+function safeGetItem(key) {
+  try { return localStorage.getItem(key); } 
+  catch(e) { return memoryStore[key] || null; }
+}
+function safeSetItem(key, val) {
+  try { localStorage.setItem(key, val); } 
+  catch(e) { memoryStore[key] = val; }
+}
+// ==========================================
 
-let isEditingRole = false;
-let editOriginalName = "";
+const SCHOOLS=["段氏","万灵山庄","刀宗","北天药宗","衍天宗","凌雪阁","蓬莱","霸刀山庄","长歌门","苍云","丐帮","明教","唐门","五毒","藏剑山庄","天策府","纯阳宫","少林寺","七秀坊","万花谷"];
+const SCHOOL_MIND_MAP={
+  "段氏":["周天功"],"万灵山庄":["山海心诀"],"刀宗":["孤锋诀"],"北天药宗":["无方","灵素"],"衍天宗":["太玄经"],"凌雪阁":["隐龙诀"],"蓬莱":["凌海诀"],"霸刀山庄":["北傲诀"],"长歌门":["莫问","相知"],"苍云":["分山劲","铁骨衣"],"丐帮":["笑尘诀"],"明教":["焚影圣诀","明尊琉璃体"],"唐门":["惊羽诀","天罗诡道"],"五毒":["毒经","补天诀"],"藏剑山庄":["藏剑"],"天策府":["傲血战意","铁牢律"],"纯阳宫":["紫霞功","太虚剑意"],"少林寺":["易筋经","洗髓经"],"七秀坊":["冰心诀","云裳心经"],"万花谷":["花间游","离经易道"]
+};
+
+const TEAM_DUNGEONS = [
+  "洛阳之战","一之窟","太极宫","空城殿·上","空城殿·下","绰罪之渊","会战弓月城","阆风悬城","阆风悬城·元心殿",
+  "西津渡","古剑台","武狱黑牢","九老洞","冷龙峰",
+  "达摩洞","白帝江关","雷域大泽","河阳之战",
+  "冰火岛·荒血路","冰火岛·青莲狱","尘归海·巨冥湾","尘归海·饕餮洞","敖龙岛","范阳夜变",
+  "狼牙堡·战兽山","狼牙堡·燕然峰","狼牙堡·辉天堑","狼牙堡·狼神殿",
+  "风雷刀谷·锻刀厅","风雷刀谷·千雷殿",
+  "上阳宫·观风殿","上阳宫·双曜亭",
+  "永王行宫·仙侣庭园","永王行宫·花月别院",
+  "战宝军械库","大明宫","血战天策","风雪稻香村","秦皇陵","太原之战·夜守孤城","太原之战·逐虎驱狼",
+  "荻花圣殿","龙渊泽","荻花洞窟","神剑冢","持国天王回忆录","烛龙殿","会战唐门","南诏皇宫",
+  "战宝迦兰","持国天王殿","宫中神武遗迹","荻花宫后山"
+];
+
+const FIVE_MAN_DUNGEONS = [
+  "南山马场","吴渊极","玄元观","大阳津",
+  "天龙寺","冰川宫宝库","风砂旧垒","不染窟","獠山岛",
+  "沃石院","镇海阁地井","幽藤馆","江天夜宴","鹿桥驿","栖灵洞天·旧事",
+  "剑冢惊变","梦入集真岛","梧桐山庄","罗汉门","月落三星","漳水南路","武氏别院",
+  "泥兰洞天","大衍盘丝洞","镜泊湖","九辩馆","迷渊岛","周天屿","玄鹤别院",
+  "银雾湖","稻香秘事","刀轮海厅","夕颜阁","天泣林","阴山圣泉","梵空禅院","引仙水榭","微山书院","白帝水宫",
+  "一线天","华清宫","华清宫回忆录","流离岛","直城门","墨家秘殿","春明门","雁门关之役","璨翠海厅",
+  "仙踪林","毒神殿","法王窟","无量宫","寂灭厅","唐门密室","光明顶秘道",
+  "灵霄峡","天工坊","无盐岛","空雾峰","天地三才阵","荻花宫前山","日轮山城","天子峰","风雨稻香村","剑冢"
+];
+
+const PRESET_10MAN = [
+  {name:"10人周常·洛阳之战", cycle:"weekly", category:"pve", sub:"10man", fixed:true},
+  {name:"10人周常·旧本1", cycle:"weekly", category:"pve", sub:"10man", dynamic:true, slot:1},
+  {name:"10人周常·旧本2", cycle:"weekly", category:"pve", sub:"10man", dynamic:true, slot:2}
+];
+const PRESET_25MAN = [
+  {name:"25人普通·洛阳之战", cycle:"weekly", category:"pve", sub:"25man", fixed:true},
+  {name:"25人英雄·洛阳之战", cycle:"weekly", category:"pve", sub:"25man", fixed:true}
+];
+
+const PRESET_PVE_CHALLENGE = [
+  {name:"百战异闻录", cycle:"weekly", category:"pve", sub:"challenge"},
+  {name:"浪客行", cycle:"weekly", category:"pve", sub:"challenge"},
+  {name:"试炼之地", cycle:"weekly", category:"pve", sub:"challenge"}
+];
+const PRESET_PVP_DAILY = [
+  {name:"阵营日常", cycle:"daily", category:"pvp", sub:"pvp-daily"},
+  {name:"据点贸易", cycle:"daily", category:"pvp", sub:"pvp-daily"}
+];
+const PRESET_PVP_WEEKLY = [];
+const PRESET_PVX_DAILY = [
+  {name:"茶馆", cycle:"daily", category:"pvx", sub:"pvx-daily"},
+  {name:"门派日常", cycle:"daily", category:"pvx", sub:"pvx-daily"},
+  {name:"美人图", cycle:"daily", category:"pvx", sub:"pvx-daily"},
+  {name:"公共日常", cycle:"daily", category:"pvx", sub:"pvx-daily"}
+];
+
+let data=loadData();
+let currentRole = safeGetItem("jw3_current_role_v2") || "";
+if(!data.roleSchools)data.roleSchools={}; 
+if(!data.roleMinds)data.roleMinds={};
+let monthCursor=new Date(); monthCursor.setDate(1);
+let isEditingRole = false; let editOriginalName = "";
+let tenManSelections = data.tenManSelections || {slot1:TEAM_DUNGEONS[1]||"一之窟", slot2:TEAM_DUNGEONS[5]||"会战弓月城"};
+let fiveManSelection = data.fiveManSelection || FIVE_MAN_DUNGEONS[0] || "南山马场";
 
 function loadData(){
   try{
-    const x=JSON.parse(localStorage.getItem(KEY)||"{}");
-    return {entries:Array.isArray(x.entries)?x.entries:[],roles:Array.isArray(x.roles)?x.roles:[],tasks:Array.isArray(x.tasks)?x.tasks:[],roleSchools:(x.roleSchools&&typeof x.roleSchools==="object")?x.roleSchools:{},roleMinds:(x.roleMinds&&typeof x.roleMinds==="object")?x.roleMinds:{}};
-  }catch(e){return {entries:[],roles:[],tasks:[],roleSchools:{},roleMinds:{}}}
+    const x=JSON.parse(safeGetItem(KEY)||"{}");
+    return {
+      entries:Array.isArray(x.entries)?x.entries:[],
+      roles:Array.isArray(x.roles)?x.roles:[],
+      tasks:Array.isArray(x.tasks)?x.tasks:[],
+      roleSchools:(x.roleSchools&&typeof x.roleSchools==="object")?x.roleSchools:{},
+      roleMinds:(x.roleMinds&&typeof x.roleMinds==="object")?x.roleMinds:{},
+      tenManSelections:x.tenManSelections||null, 
+      fiveManSelection:x.fiveManSelection||null, 
+      taskStates:(x.taskStates&&typeof x.taskStates==="object")?x.taskStates:{}
+    };
+  }catch(e){
+    return {entries:[],roles:[],tasks:[],roleSchools:{},roleMinds:{},tenManSelections:null, fiveManSelection:null, taskStates:{}}
+  }
 }
-function save(){localStorage.setItem(KEY,JSON.stringify(data));localStorage.setItem("jw3_current_role_v2",currentRole);renderAll()}
+function save(){
+  safeSetItem(KEY, JSON.stringify(data));
+  safeSetItem("jw3_current_role_v2", currentRole);
+  renderAll();
+}
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
 function money(n){return Number(n||0).toLocaleString("zh-CN",{maximumFractionDigits:2})+" 金"}
 function today(){return new Date().toISOString().slice(0,10)}
 function ensureRole(){if(currentRole)return true;addRole();return !!currentRole}
 
+// ---------- 角色管理 ----------
 function addRole(){
-  isEditingRole = false;
-  editOriginalName = "";
-  document.getElementById("roleModalTitle").textContent = "创建角色";
-  document.getElementById("roleSubmitBtn").textContent = "创建角色";
-  
-  roleNameInput.value=""; 
-  roleSchoolInput.value="万灵山庄"; 
+  isEditingRole=false; editOriginalName="";
+  document.getElementById("roleModalTitle").textContent="创建角色";
+  document.getElementById("roleSubmitBtn").textContent="创建角色";
+  document.getElementById("roleNameInput").value=""; 
+  document.getElementById("roleSchoolInput").value="万灵山庄"; 
   updateMindSelect();
-  
-  roleModal.style.display="block";
-  setTimeout(()=>roleNameInput.focus(),30);
+  document.getElementById("roleModal").style.display="block"; 
+  setTimeout(()=>document.getElementById("roleNameInput").focus(),30);
 }
-
 function openEditRoleModal(){
   if(!currentRole) return;
-  isEditingRole = true;
-  editOriginalName = currentRole;
-  document.getElementById("roleModalTitle").textContent = "修改角色信息";
-  document.getElementById("roleSubmitBtn").textContent = "保存修改";
-  
-  roleNameInput.value = currentRole;
-  roleSchoolInput.value = data.roleSchools[currentRole] || "万灵山庄";
+  isEditingRole=true; editOriginalName=currentRole;
+  document.getElementById("roleModalTitle").textContent="修改角色信息";
+  document.getElementById("roleSubmitBtn").textContent="保存修改";
+  document.getElementById("roleNameInput").value=currentRole;
+  document.getElementById("roleSchoolInput").value=data.roleSchools[currentRole]||"万灵山庄";
   updateMindSelect();
-  roleMindInput.value = data.roleMinds[currentRole] || roleMindInput.options[0]?.value || "";
-  
-  roleModal.style.display = "block";
-  setTimeout(()=>roleNameInput.focus(),30);
+  document.getElementById("roleMindInput").value=data.roleMinds[currentRole]||document.getElementById("roleMindInput").options[0]?.value||"";
+  document.getElementById("roleModal").style.display="block"; 
+  setTimeout(()=>document.getElementById("roleNameInput").focus(),30);
 }
-
-function closeRoleModal(){roleModal.style.display="none"}
-
+function closeRoleModal(){document.getElementById("roleModal").style.display="none"}
 function saveRole(ev){
   ev.preventDefault();
-  const newName = roleNameInput.value.trim();
-  const school = roleSchoolInput.value;
-  const mind = roleMindInput.value;
+  const newName=document.getElementById("roleNameInput").value.trim();
+  const school=document.getElementById("roleSchoolInput").value;
+  const mind=document.getElementById("roleMindInput").value;
   if(!newName) return;
-
-  if (isEditingRole) {
-    if (newName !== editOriginalName && data.roles.includes(newName)) {
-      return alert("这个角色名已经存在");
+  if(isEditingRole){
+    if(newName!==editOriginalName && data.roles.includes(newName)) return alert("这个角色名已经存在");
+    data.roles=data.roles.map(r=>r===editOriginalName?newName:r);
+    data.roleSchools[newName]=school; data.roleMinds[newName]=mind;
+    if(newName!==editOriginalName){
+      delete data.roleSchools[editOriginalName]; delete data.roleMinds[editOriginalName];
+      data.entries.forEach(e=>{if(e.role===editOriginalName)e.role=newName});
+      Object.keys(data.taskStates).forEach(k=>{
+        if(k.startsWith(editOriginalName+"_")){
+          const newKey=newName+k.slice(editOriginalName.length);
+          data.taskStates[newKey]=data.taskStates[k]; delete data.taskStates[k];
+        }
+      });
+      currentRole=newName;
     }
-    
-    data.roles = data.roles.map(r => r === editOriginalName ? newName : r);
-    data.roleSchools[newName] = school;
-    data.roleMinds[newName] = mind;
-    
-    if (newName !== editOriginalName) {
-      delete data.roleSchools[editOriginalName];
-      delete data.roleMinds[editOriginalName];
-      
-      data.entries.forEach(e => { if (e.role === editOriginalName) e.role = newName; });
-      data.tasks.forEach(t => { if (t.role === editOriginalName) t.role = newName; });
-      
-      currentRole = newName;
-    }
-    
-    closeRoleModal();
-    save();
-    showPage("roleDetail");
-  } else {
+    closeRoleModal(); save(); showPage("roleDetail");
+  }else{
     if(data.roles.includes(newName)) return alert("这个角色已经存在");
-    data.roles.push(newName);
-    data.roleSchools[newName] = school;
-    data.roleMinds[newName] = mind;
-    currentRole = newName;
-    closeRoleModal();
-    save();
+    data.roles.push(newName); data.roleSchools[newName]=school; data.roleMinds[newName]=mind; currentRole=newName;
+    closeRoleModal(); save();
   }
 }
-
 function selectRole(r){currentRole=r;save()}
 function openRoleDetail(r){currentRole=r;save();showPage("roleDetail")}
-
 function deleteRole(){
-  if(!currentRole)return;
-  if(!confirm("确定删除角色「"+currentRole+"」吗？\\n\\n该角色的收益、支出和打本/日常记录都会删除，无法恢复。"))return;
+  if(!currentRole) return;
+  if(!confirm("确定删除角色「"+currentRole+"」吗？\\n\\n该角色的收益、支出和打本/日常记录都会删除，无法恢复。")) return;
   data.entries=data.entries.filter(e=>e.role!==currentRole);
-  data.tasks=data.tasks.filter(t=>t.role!==currentRole);
+  Object.keys(data.taskStates).forEach(k=>{if(k.startsWith(currentRole+"_")) delete data.taskStates[k]});
   data.roles=data.roles.filter(r=>r!==currentRole);
-  delete data.roleSchools[currentRole];
-  delete data.roleMinds[currentRole];
-  currentRole=data.roles[0]||"";save();showPage("dashboard");
+  delete data.roleSchools[currentRole]; delete data.roleMinds[currentRole];
+  currentRole=data.roles[0]||""; save(); showPage("dashboard");
 }
 function showPage(id){
   document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
-  const p=document.getElementById(id);if(p)p.classList.add("active");
+  const p=document.getElementById(id); if(p) p.classList.add("active");
   document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("active",b.dataset.page===id));
-  if(id==="roleDetail")document.querySelectorAll("#nav button").forEach(b=>b.classList.remove("active"));
+  if(id==="roleDetail") document.querySelectorAll("#nav button").forEach(b=>b.classList.remove("active"));
   renderAll();
 }
 document.querySelectorAll("#nav button").forEach(b=>b.onclick=()=>showPage(b.dataset.page));
 
+// ---------- 收益/支出 ----------
 function openEntry(){
-  if(!ensureRole())return;
-  entryDate.value=today();entryType.value="in";entrySource.value="";entryGoldBrick.value="";entryGoldJin.value="";entryGoldYin.value="";entryItem.value="";entryNote.value="";
-  document.getElementById("ocrStatus").textContent="";
-  entryModal.style.display="block";
+  if(!ensureRole()) return;
+  document.getElementById("entryDate").value=today(); 
+  document.getElementById("entryType").value="in"; 
+  document.getElementById("entrySource").value=""; 
+  document.getElementById("entryGoldBrick").value=""; 
+  document.getElementById("entryGoldJin").value=""; 
+  document.getElementById("entryGoldYin").value=""; 
+  document.getElementById("entryItem").value=""; 
+  document.getElementById("entryNote").value="";
+  document.getElementById("ocrStatus").textContent=""; 
+  document.getElementById("entryModal").style.display="block";
 }
-function closeEntry(){entryModal.style.display="none"}
+function closeEntry(){document.getElementById("entryModal").style.display="none"}
 function saveEntry(ev){
   ev.preventDefault();
-  const brick=Number(entryGoldBrick.value||0);
-  const jin=Number(entryGoldJin.value||0);
-  const yin=Number(entryGoldYin.value||0);
-  const totalGold = brick*10000 + jin + yin/100;
-  data.entries.push({id:Date.now().toString(),role:currentRole,date:entryDate.value,type:entryType.value,source:entrySource.value.trim(),gold:totalGold,item:entryItem.value.trim(),note:entryNote.value.trim()});
-  save();closeEntry();
+  const brick=Number(document.getElementById("entryGoldBrick").value||0);
+  const jin=Number(document.getElementById("entryGoldJin").value||0);
+  const yin=Number(document.getElementById("entryGoldYin").value||0);
+  const totalGold=brick*10000+jin+yin/100;
+  data.entries.push({
+    id:Date.now().toString(),
+    role:currentRole,
+    date:document.getElementById("entryDate").value,
+    type:document.getElementById("entryType").value,
+    source:document.getElementById("entrySource").value.trim(),
+    gold:totalGold,
+    item:document.getElementById("entryItem").value.trim(),
+    note:document.getElementById("entryNote").value.trim()
+  });
+  save(); closeEntry();
 }
 function deleteEntry(id){
-  if(!confirm("删除这条记录？"))return;
-  data.entries=data.entries.filter(e=>e.id!==id);save();
+  if(!confirm("删除这条记录？")) return;
+  data.entries=data.entries.filter(e=>e.id!==id); save();
 }
 function renderLedger(){
-  const el=document.getElementById("ledgerTable");if(!el)return;
-  const typ=ledgerType.value, q=ledgerSearch.value.trim().toLowerCase();
+  const el=document.getElementById("ledgerTable"); if(!el) return;
+  const typ=document.getElementById("ledgerType").value;
+  const q=document.getElementById("ledgerSearch").value.trim().toLowerCase();
   let arr=data.entries.filter(e=>(!currentRole||e.role===currentRole)&&(!typ||e.type===typ)&&(!q||[e.source,e.note,e.item].join(" ").toLowerCase().includes(q))).sort((a,b)=>b.date.localeCompare(a.date));
-  if(!arr.length){el.innerHTML='<div class="empty">暂无记录。</div>';return}
+  if(!arr.length){el.innerHTML='<div class="empty">暂无记录。</div>'; return}
   el.innerHTML="<table><thead><tr><th>日期</th><th>类型</th><th>来源/活动</th><th>金币</th><th>备注</th><th>操作</th></tr></thead><tbody>"+
   arr.map(e=>`<tr><td>${esc(e.date)}</td><td>${e.type==="in"?'<span class="tag in">收入</span>':'<span class="tag out">支出</span>'}</td><td>${esc(e.source||"其他")}${e.item?`<div class="muted">${esc(e.item)}</div>`:""}</td><td class="${e.type==="in"?"green":"red"}">${e.type==="in"?"+":"-"}${money(e.gold)}</td><td>${esc(e.note||"")}</td><td><button class="btn" onclick="deleteEntry('${e.id}')">删除</button></td></tr>`).join("")+"</tbody></table>";
 }
-function openTask(){
-  if(!ensureRole())return;
-  taskName.value="";taskType.value="日常";taskCycle.value="daily";taskNote.value="";
-  taskModal.style.display="block";
-}
-function closeTask(){taskModal.style.display="none"}
-function saveTask(ev){
-  ev.preventDefault();
-  data.tasks.push({id:Date.now().toString(),role:currentRole,name:taskName.value.trim(),type:taskType.value,cycle:taskCycle.value,note:taskNote.value.trim(),lastDone:""});
-  save();closeTask();
-}
-function taskDone(id){
-  const t=data.tasks.find(x=>x.id===id);if(!t)return;
-  t.lastDone=t.lastDone===today()?"":today();save();
-}
-function deleteTask(id){
-  if(!confirm("删除这个项目？"))return;
-  data.tasks=data.tasks.filter(t=>t.id!==id);save();
-}
-function cycleText(c){return c==="daily"?"每日":c==="weekly"?"每周":"不限周期"}
-function renderTasks(){
-  const el=document.getElementById("taskTable");if(!el)return;
-  const typ=taskFilter.value;
-  const arr=data.tasks.filter(t=>(!currentRole||t.role===currentRole)&&(!typ||t.type===typ));
-  if(!arr.length){el.innerHTML='<div class="empty">当前角色还没有项目。点击“＋ 添加项目”即可自己添加。</div>';return}
-  el.innerHTML="<table><thead><tr><th>项目</th><th>类型</th><th>周期</th><th>今日</th><th>操作</th></tr></thead><tbody>"+
-  arr.map(t=>`<tr><td><b>${esc(t.name)}</b>${t.note?`<div class="muted">${esc(t.note)}</div>`:""}</td><td><span class="tag">${esc(t.type)}</span></td><td>${cycleText(t.cycle)}</td><td>${t.lastDone===today()?'<span class="tag in">✓ 已完成</span>':'未完成'}</td><td><button class="btn" onclick="taskDone('${t.id}')">${t.lastDone===today()?"取消完成":"完成今日"}</button> <button class="btn" onclick="deleteTask('${t.id}')">删除</button></td></tr>`).join("")+"</tbody></table>";
-}
-function renderDashboard(){
-  const es=data.entries.filter(e=>!currentRole||e.role===currentRole),td=today();
-  const inc=es.filter(e=>e.date===td&&e.type==="in").reduce((s,e)=>s+e.gold,0),out=es.filter(e=>e.date===td&&e.type==="out").reduce((s,e)=>s+e.gold,0);
-  todayIncome.textContent=money(inc);todayExpense.textContent=money(out);todayNet.textContent=money(inc-out);
-  todayDone.textContent=data.tasks.filter(t=>t.role===currentRole&&t.lastDone===td).length;
-  dashRole.textContent=currentRole?(data.roleSchools[currentRole]||"未设置")+" · "+(data.roleMinds[currentRole]||"未设置")+" · "+currentRole:"请先添加角色";
-  const recent=es.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,7);
-  dashRecent.innerHTML=recent.length?recent.map(e=>`<div class="kpi"><span>${esc(e.date)} · ${esc(e.source||"其他")}</span><b class="${e.type==="in"?"green":"red"}">${e.type==="in"?"+":"-"}${money(e.gold)}</b></div>`).join(""):'<div class="empty">暂无记录。</div>';
-  const ym=today().slice(0,7),mi=es.filter(e=>e.date.startsWith(ym)&&e.type==="in").reduce((s,e)=>s+e.gold,0),mo=es.filter(e=>e.date.startsWith(ym)&&e.type==="out").reduce((s,e)=>s+e.gold,0);
-  monthSummary.innerHTML=`<div class="grid3"><div><div class="label">本月收入</div><div class="value gold">${money(mi)}</div></div><div><div class="label">本月支出</div><div class="value red">${money(mo)}</div></div><div><div class="label">本月净收益</div><div class="value green">${money(mi-mo)}</div></div></div>`;
-  
-  const allTodayEntries = data.entries.filter(e=>e.date===td && e.type==="in");
-  const allTodayIncome = allTodayEntries.reduce((s,e)=>s+e.gold,0);
-  document.getElementById("globalTodayIncome").textContent = money(allTodayIncome);
-  const roleCount = [...new Set(allTodayEntries.map(e=>e.role))].length;
-  document.getElementById("globalTodayRoles").textContent = roleCount ? `共 ${roleCount} 个角色有收入` : "今天还没有收入记录";
-}
-function renderRoleDetail(){
-  if(!document.getElementById("detailName"))return;
-  detailName.textContent=currentRole||"角色详情"; detailSchool.textContent="门派："+(data.roleSchools[currentRole]||"未设置")+" · 心法："+(data.roleMinds[currentRole]||"未设置")+" · 该角色的全部收益、支出和打本/日常。";
-  const es=data.entries.filter(e=>e.role===currentRole),i=es.filter(e=>e.type==="in").reduce((s,e)=>s+e.gold,0),o=es.filter(e=>e.type==="out").reduce((s,e)=>s+e.gold,0);
-  detailIn.textContent=money(i);detailOut.textContent=money(o);detailNet.textContent=money(i-o);detailCount.textContent=es.length;
-  const ts=data.tasks.filter(t=>t.role===currentRole);
-  detailTasks.innerHTML=ts.length?ts.map(t=>`<div class="task-row"><div><b>${esc(t.name)}</b><span class="tag">${esc(t.type)}</span><span class="muted">${cycleText(t.cycle)}</span></div><button class="btn" onclick="taskDone('${t.id}')">${t.lastDone===today()?"✓ 今日已完成":"完成今日"}</button></div>`).join(""):'<div class="empty">还没有添加项目。</div>';
-  const rs=es.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8);
-  detailRecords.innerHTML=rs.length?rs.map(e=>`<div class="kpi"><span>${esc(e.date)} · ${esc(e.source||"其他")}</span><b class="${e.type==="in"?"green":"red"}">${e.type==="in"?"+":"-"}${money(e.gold)}</b></div>`).join(""):'<div class="empty">暂无记录。</div>';
-}
-function renderAnalytics(){
-  const td = today();
-  
-  // 1. 计算并更新新增的两个今日数据卡片
-  const globalTodayInc = data.entries.filter(e => e.date === td && e.type === "in").reduce((s, e) => s + e.gold, 0);
-  document.getElementById("anaGlobalIncome").textContent = money(globalTodayInc);
-  
-  document.getElementById("anaRoleName").textContent = currentRole || "未选择";
-  const roleTodayInc = data.entries.filter(e => e.date === td && e.type === "in" && e.role === currentRole).reduce((s, e) => s + e.gold, 0);
-  document.getElementById("anaRoleIncome").textContent = money(roleTodayInc);
 
-  // 2. 下方原有逻辑：当前角色历史累计来源分析
-  const map={};data.entries.filter(e=>e.type==="in"&&(!currentRole||e.role===currentRole)).forEach(e=>{
-    let k=(e.source||"其他").trim()||"其他";
-    if(k==="其他"&&e.note.trim())k=e.note.trim();
-    map[k]=(map[k]||0)+e.gold;
+// ---------- 打本/日常 ----------
+function getTaskStateKey(taskId){ return currentRole+"_"+taskId; }
+function isTaskDone(taskId){
+  const key=getTaskStateKey(taskId);
+  const lastDone=data.taskStates[key];
+  if(!lastDone) return false;
+  const t=today();
+  if(lastDone===t) return true;
+  const task = getAllTasks().find(x=>x.id===taskId);
+  if(task && task.cycle==="weekly"){
+    const now=new Date(); const day=now.getDay(); const monday=new Date(now); monday.setDate(now.getDate()-(day===0?6:day-1));
+    const mondayStr=monday.toISOString().slice(0,10);
+    return lastDone>=mondayStr;
+  }
+  return false;
+}
+function toggleTaskDone(taskId){
+  const key=getTaskStateKey(taskId);
+  if(isTaskDone(taskId)){ delete data.taskStates[key]; }
+  else{ data.taskStates[key]=today(); }
+  save();
+}
+
+function getAllTasks(){
+  const custom=data.tasks.filter(t=>!t.preset);
+  const all=[];
+  all.push({name:"大战·"+fiveManSelection, id:"preset_5_dazhan", cycle:"daily", category:"pve", sub:"5man"});
+  PRESET_10MAN.forEach(t=>{
+    if(t.dynamic){
+      const name = t.slot===1 ? tenManSelections.slot1 : tenManSelections.slot2;
+      all.push({...t,id:"preset_10_slot"+t.slot,name:"10人周常·"+name});
+    }else{
+      all.push({...t,id:"preset_10_"+t.name});
+    }
   });
-  const items=Object.entries(map).sort((a,b)=>b[1]-a[1]),total=items.reduce((s,x)=>s+x[1],0);
-  sourceList.innerHTML=items.length?items.map(x=>`<div class="kpi"><span>${esc(x[0])}</span><b>${money(x[1])} · ${total?((x[1]/total)*100).toFixed(1):0}%</b></div>`).join(""):'<div class="empty">暂无收入数据。</div>';
-  const c=document.getElementById("donut"),ctx=c.getContext("2d");ctx.clearRect(0,0,320,320);
-  if(!items.length){ctx.font="16px sans-serif";ctx.textAlign="center";ctx.fillText("暂无收益数据",160,160);legend.innerHTML="";} else {
-    const colors=["#b88732","#268b57","#4f46e5","#06b6d4","#ef4444","#8b5cf6","#ec4899","#64748b"];let a=-Math.PI/2;
-    items.forEach((x,n)=>{let ang=x[1]/total*Math.PI*2;ctx.beginPath();ctx.moveTo(160,160);ctx.arc(160,160,115,a,a+ang);ctx.closePath();ctx.fillStyle=colors[n%colors.length];ctx.fill();a+=ang});
-    ctx.globalCompositeOperation="destination-out";ctx.beginPath();ctx.arc(160,160,62,0,Math.PI*2);ctx.fill();ctx.globalCompositeOperation="source-over";
-    legend.innerHTML=items.map((x,n)=>`<div class="legend-row"><span class="legend-dot" style="background:${colors[n%colors.length]}"></span><span>${esc(x[0])}</span><b>${money(x[1])}</b></div>`).join("");
+  PRESET_25MAN.forEach(t=>all.push({...t,id:"preset_25_"+t.name}));
+  PRESET_PVE_CHALLENGE.forEach(t=>all.push({...t,id:"preset_pvech_"+t.name}));
+  PRESET_PVP_DAILY.forEach(t=>all.push({...t,id:"preset_pvpd_"+t.name}));
+  PRESET_PVP_WEEKLY.forEach(t=>all.push({...t,id:"preset_pvpw_"+t.name}));
+  PRESET_PVX_DAILY.forEach(t=>all.push({...t,id:"preset_pvxd_"+t.name}));
+  custom.forEach(t=>all.push({...t,id:t.id,preset:false}));
+  return all;
+}
+
+function renderTasks(){
+  const fiveSel=document.getElementById("fiveManSelect");
+  if(fiveSel.options.length===0){
+    fiveSel.innerHTML=FIVE_MAN_DUNGEONS.map(n=>`<option value="${n}">${n}</option>`).join("");
+    fiveSel.value=fiveManSelection;
+  }
+  const el5=document.getElementById("taskList-5man");
+  const dazhanDone = isTaskDone("preset_5_dazhan");
+  el5.innerHTML=`
+    <div class="task-item ${dazhanDone?'done':''}"><span>大战 (${fiveManSelection})</span><button class="btn" onclick="toggleTaskDone('preset_5_dazhan')">${dazhanDone?'✓ 已完成':'标记完成'}</button></div>
+  `;
+
+  const sel1=document.getElementById("tenManSelect1"), sel2=document.getElementById("tenManSelect2");
+  if(sel1.options.length===0){
+    sel1.innerHTML=TEAM_DUNGEONS.map(n=>`<option value="${n}">${n}</option>`).join("");
+    sel2.innerHTML=TEAM_DUNGEONS.map(n=>`<option value="${n}">${n}</option>`).join("");
+    sel1.value=tenManSelections.slot1; sel2.value=tenManSelections.slot2;
+  }
+  const el10=document.getElementById("taskList-10man");
+  el10.innerHTML=PRESET_10MAN.map(t=>{
+    let name=t.name, id="preset_10_"+t.name;
+    if(t.dynamic){
+      const n = t.slot===1 ? tenManSelections.slot1 : tenManSelections.slot2;
+      name="10人周常·"+n; id="preset_10_slot"+t.slot;
+    }
+    const done=isTaskDone(id);
+    return `<div class="task-item ${done?'done':''}"><span>${esc(name)}</span><button class="btn" onclick="toggleTaskDone('${id}')">${done?'✓ 已完成':'标记完成'}</button></div>`;
+  }).join("");
+
+  const el25=document.getElementById("taskList-25man");
+  el25.innerHTML=PRESET_25MAN.map(t=>{
+    const done=isTaskDone("preset_25_"+t.name);
+    return `<div class="task-item ${done?'done':''}"><span>${esc(t.name)}</span><button class="btn" onclick="toggleTaskDone('preset_25_${t.name}')">${done?'✓ 已完成':'标记完成'}</button></div>`;
+  }).join("");
+
+  const elPveCh=document.getElementById("taskList-pve-challenge");
+  elPveCh.innerHTML=PRESET_PVE_CHALLENGE.map(t=>{
+    const done=isTaskDone("preset_pvech_"+t.name);
+    return `<div class="task-item ${done?'done':''}"><span>${esc(t.name)}</span><button class="btn" onclick="toggleTaskDone('preset_pvech_${t.name}')">${done?'✓ 已完成':'标记完成'}</button></div>`;
+  }).join("");
+
+  const elPvpD=document.getElementById("taskList-pvp-daily");
+  elPvpD.innerHTML=PRESET_PVP_DAILY.map(t=>{
+    const done=isTaskDone("preset_pvpd_"+t.name);
+    return `<div class="task-item ${done?'done':''}"><span>${esc(t.name)}</span><button class="btn" onclick="toggleTaskDone('preset_pvpd_${t.name}')">${done?'✓ 已完成':'标记完成'}</button></div>`;
+  }).join("");
+
+  const pvpWeeklyGroup=document.getElementById("pvpWeeklyGroup");
+  if (PRESET_PVP_WEEKLY.length === 0) {
+    pvpWeeklyGroup.style.display = "none";
+  } else {
+    pvpWeeklyGroup.style.display = "block";
+    const elPvpW=document.getElementById("taskList-pvp-weekly");
+    elPvpW.innerHTML=PRESET_PVP_WEEKLY.map(t=>{
+      const done=isTaskDone("preset_pvpw_"+t.name);
+      return `<div class="task-item ${done?'done':''}"><span>${esc(t.name)}</span><button class="btn" onclick="toggleTaskDone('preset_pvpw_${t.name}')">${done?'✓ 已完成':'标记完成'}</button></div>`;
+    }).join("");
   }
 
-  // 3. 全角色累计排行
-  const roleMap={};
-  data.entries.filter(e=>e.type==="in").forEach(e=>{
-    roleMap[e.role]=(roleMap[e.role]||0)+e.gold;
+  const elPvxD=document.getElementById("taskList-pvx-daily");
+  elPvxD.innerHTML=PRESET_PVX_DAILY.map(t=>{
+    const done=isTaskDone("preset_pvxd_"+t.name);
+    return `<div class="task-item ${done?'done':''}"><span>${esc(t.name)}</span><button class="btn" onclick="toggleTaskDone('preset_pvxd_${t.name}')">${done?'✓ 已完成':'标记完成'}</button></div>`;
+  }).join("");
+
+  const custom=data.tasks.filter(t=>!t.preset);
+  const customGrp=document.getElementById("customTaskGroup");
+  const elCustom=document.getElementById("taskList-custom");
+  if(custom.length){
+    customGrp.style.display="block";
+    elCustom.innerHTML=custom.map(t=>{
+        const done=isTaskDone(t.id);
+        return `<div class="task-item ${done?'done':''}"><span>${esc(t.name)} <span class="tag">${t.cycle==="daily"?"每日":"每周"}</span></span><button class="btn" onclick="toggleTaskDone('${t.id}')">${done?'✓ 已完成':'标记完成'}</button> <button class="btn danger" onclick="deleteCustomTask('${t.id}')">删除</button></div>`;
+    }).join("");
+  }else{
+    customGrp.style.display="none";
+  }
+}
+
+function updateFiveManDaily(){
+  fiveManSelection=document.getElementById("fiveManSelect").value;
+  data.fiveManSelection=fiveManSelection;
+  save();
+}
+function updateTenManWeekly(){
+  tenManSelections.slot1=document.getElementById("tenManSelect1").value;
+  tenManSelections.slot2=document.getElementById("tenManSelect2").value;
+  data.tenManSelections=tenManSelections;
+  save();
+}
+
+function openTaskModal(category){
+  document.getElementById("taskModalTitle").textContent = "添加自定义项目";
+  document.getElementById("taskCategory").value = category;
+  document.getElementById("taskName").value="";
+  document.getElementById("taskCycle").value="daily";
+  document.getElementById("taskNote").value="";
+  document.getElementById("taskModal").style.display="block";
+}
+function closeTaskModal(){document.getElementById("taskModal").style.display="none"}
+function saveCustomTask(ev){
+  ev.preventDefault();
+  data.tasks.push({
+    id:Date.now().toString(),
+    role:currentRole,
+    name:document.getElementById("taskName").value.trim(),
+    category:document.getElementById("taskCategory").value,
+    cycle:document.getElementById("taskCycle").value,
+    note:document.getElementById("taskNote").value.trim(),
+    preset:false
   });
+  save(); closeTaskModal();
+}
+function deleteCustomTask(id){
+  if(!confirm("删除这个自定义项目？")) return;
+  data.tasks=data.tasks.filter(t=>t.id!==id); save();
+}
+
+function renderRoleDetail(){
+  if(!document.getElementById("detailName")) return;
+  document.getElementById("detailName").textContent=currentRole||"角色详情";
+  document.getElementById("detailSchool").textContent="门派："+(data.roleSchools[currentRole]||"未设置")+" · 心法："+(data.roleMinds[currentRole]||"未设置")+" · 该角色的全部收益、支出和打本/日常。";
+  const es=data.entries.filter(e=>e.role===currentRole);
+  const i=es.filter(e=>e.type==="in").reduce((s,e)=>s+Number(e.gold||0),0);
+  const o=es.filter(e=>e.type==="out").reduce((s,e)=>s+Number(e.gold||0),0);
+  document.getElementById("detailIn").textContent=money(i);
+  document.getElementById("detailOut").textContent=money(o);
+  document.getElementById("detailNet").textContent=money(i-o);
+  document.getElementById("detailCount").textContent=es.length;
+  
+  const doneCount=getAllTasks().filter(t=>isTaskDone(t.id)).length;
+  document.getElementById("detailTasks").innerHTML=`<div class="kpi"><span>今日已完成项目</span><b>${doneCount} 个</b></div>`;
+  const rs=es.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8);
+  document.getElementById("detailRecords").innerHTML=rs.length?rs.map(e=>`<div class="kpi"><span>${esc(e.date)} · ${esc(e.source||"其他")}</span><b class="${e.type==="in"?"green":"red"}">${e.type==="in"?"+":"-"}${money(e.gold)}</b></div>`).join(""):'<div class="empty">暂无记录。</div>';
+}
+
+// ---------- 工作台 ----------
+function renderDashboard(){
+  const es=data.entries.filter(e=>!currentRole||e.role===currentRole), td=today();
+  const inc=es.filter(e=>e.date===td&&e.type==="in").reduce((s,e)=>s+Number(e.gold||0),0);
+  const out=es.filter(e=>e.date===td&&e.type==="out").reduce((s,e)=>s+Number(e.gold||0),0);
+  document.getElementById("todayIncome").textContent=money(inc);
+  document.getElementById("todayExpense").textContent=money(out);
+  document.getElementById("todayNet").textContent=money(inc-out);
+  document.getElementById("todayDone").textContent=getAllTasks().filter(t=>isTaskDone(t.id)).length;
+  document.getElementById("dashRole").textContent=currentRole?(data.roleSchools[currentRole]||"未设置")+" · "+(data.roleMinds[currentRole]||"未设置")+" · "+currentRole:"请先添加角色";
+  
+  const recent=es.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,7);
+  document.getElementById("dashRecent").innerHTML=recent.length?recent.map(e=>`<div class="kpi"><span>${esc(e.date)} · ${esc(e.source||"其他")}</span><b class="${e.type==="in"?"green":"red"}">${e.type==="in"?"+":"-"}${money(e.gold)}</b></div>`).join(""):'<div class="empty">暂无记录。</div>';
+  
+  const ym=today().slice(0,7);
+  const mi=es.filter(e=>e.date.startsWith(ym)&&e.type==="in").reduce((s,e)=>s+Number(e.gold||0),0);
+  const mo=es.filter(e=>e.date.startsWith(ym)&&e.type==="out").reduce((s,e)=>s+Number(e.gold||0),0);
+  document.getElementById("monthSummary").innerHTML=`<div class="grid3"><div><div class="label">本月收入</div><div class="value gold">${money(mi)}</div></div><div><div class="label">本月支出</div><div class="value red">${money(mo)}</div></div><div><div class="label">本月净收益</div><div class="value green">${money(mi-mo)}</div></div></div>`;
+  
+  const allTodayEntries=data.entries.filter(e=>e.date===td && e.type==="in");
+  document.getElementById("globalTodayIncome").textContent=money(allTodayEntries.reduce((s,e)=>s+Number(e.gold||0),0));
+  const roleCount=[...new Set(allTodayEntries.map(e=>e.role))].length;
+  document.getElementById("globalTodayRoles").textContent=roleCount?`共 ${roleCount} 个角色有收入`:"今天还没有收入记录";
+}
+
+// ---------- 收益分析 ----------
+function renderAnalytics(){
+  const td=today(), ym=td.slice(0,7);
+  const globalMonthInc=data.entries.filter(e=>e.type==="in"&&e.date.startsWith(ym)).reduce((s,e)=>s+Number(e.gold||0),0);
+  document.getElementById("anaGlobalMonthIncome").textContent=money(globalMonthInc);
+  
+  const roleMonthInc=data.entries.filter(e=>e.type==="in"&&e.date.startsWith(ym)&&e.role===currentRole).reduce((s,e)=>s+Number(e.gold||0),0);
+  document.getElementById("anaRoleMonthIncome").textContent=money(roleMonthInc);
+  
+  const roleTodayInc=data.entries.filter(e=>e.type==="in"&&e.date===td&&e.role===currentRole).reduce((s,e)=>s+Number(e.gold||0),0);
+  document.getElementById("anaRoleTodayIncome").textContent=money(roleTodayInc);
+
+  const map={}; 
+  data.entries.filter(e=>e.type==="in"&&(!currentRole||e.role===currentRole)).forEach(e=>{
+    let k=(e.source||"其他").trim()||"其他";
+    if(k==="其他"&&e.note.trim()) k=e.note.trim();
+    map[k]=(map[k]||0)+Number(e.gold||0);
+  });
+  const items=Object.entries(map).sort((a,b)=>b[1]-a[1]), total=items.reduce((s,x)=>s+x[1],0);
+  document.getElementById("sourceList").innerHTML=items.length?items.map(x=>`<div class="kpi"><span>${esc(x[0])}</span><b>${money(x[1])} · ${total?((x[1]/total)*100).toFixed(1):0}%</b></div>`).join(""):'<div class="empty">暂无收入数据。</div>';
+  
+  const c=document.getElementById("donut"), ctx=c.getContext("2d"); ctx.clearRect(0,0,320,320);
+  if(!items.length){
+    ctx.font="16px sans-serif";ctx.textAlign="center";ctx.fillText("暂无收益数据",160,160);
+    document.getElementById("legend").innerHTML="";
+  } else {
+    const colors=["#b88732","#268b57","#4f46e5","#06b6d4","#ef4444","#8b5cf6","#ec4899","#64748b"]; let a=-Math.PI/2;
+    items.forEach((x,n)=>{
+      let ang=x[1]/total*Math.PI*2;
+      ctx.beginPath();ctx.moveTo(160,160);ctx.arc(160,160,115,a,a+ang);ctx.closePath();ctx.fillStyle=colors[n%colors.length];ctx.fill();a+=ang
+    });
+    ctx.globalCompositeOperation="destination-out"; ctx.beginPath(); ctx.arc(160,160,62,0,Math.PI*2); ctx.fill(); ctx.globalCompositeOperation="source-over";
+    document.getElementById("legend").innerHTML=items.map((x,n)=>`<div class="legend-row"><span class="legend-dot" style="background:${colors[n%colors.length]}"></span><span>${esc(x[0])}</span><b>${money(x[1])}</b></div>`).join("");
+  }
+
+  const roleMap={}; 
+  data.entries.filter(e=>e.type==="in").forEach(e=>{roleMap[e.role]=(roleMap[e.role]||0)+Number(e.gold||0);});
   const roleItems=Object.entries(roleMap).sort((a,b)=>b[1]-a[1]);
   const roleEl=document.getElementById("roleIncomeList");
-  if(roleItems.length){
-    roleEl.innerHTML=roleItems.map(x=>`<div class="kpi"><span>${esc(x[0])}</span><b class="gold">${money(x[1])}</b></div>`).join("");
-  }else{
-    roleEl.innerHTML='<div class="empty">暂无角色收入数据。</div>';
-  }
+  roleEl.innerHTML=roleItems.length?roleItems.map(x=>`<div class="kpi"><span>${esc(x[0])}</span><b class="gold">${money(x[1])}</b></div>`).join(""):'<div class="empty">暂无角色收入数据。</div>';
 }
+
+// ---------- 日历 ----------
 function changeMonth(n){monthCursor.setMonth(monthCursor.getMonth()+n);renderCalendar()}
 function renderCalendar(){
-  const y=monthCursor.getFullYear(),m=monthCursor.getMonth(),title=y+"年"+(m+1)+"月";monthTitle.textContent=title;
-  const first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate();let s="";
-  ["日","一","二","三","四","五","六"].forEach(x=>s+=`<div class="day" style="min-height:35px;font-weight:700">${x}</div>`);
-  for(let i=0;i<first;i++)s+='<div class="day"></div>';
+  const y=monthCursor.getFullYear(), m=monthCursor.getMonth();
+  const title=y+"年"+(m+1)+"月";
+  document.getElementById("monthTitle").textContent=title;
+  
+  const ym=y+"-"+String(m+1).padStart(2,"0");
+  const monthIncome = data.entries.filter(e=>e.type==="in" && e.date.startsWith(ym)).reduce((s,e)=>s+Number(e.gold||0),0);
+  document.getElementById("calMonthTotal").textContent = "+" + Number(monthIncome).toLocaleString("zh-CN", {maximumFractionDigits:2}) + " 金";
+
+  const first=new Date(y,m,1).getDay();
+  const days=new Date(y,m+1,0).getDate();
+  let s="";
+  ["日","一","二","三","四","五","六"].forEach(x=>s+=`<div class="day" style="min-height:35px;font-weight:700;align-items:center;justify-content:center;background:#fafafa">${x}</div>`);
+  for(let i=0;i<first;i++)s+='<div class="day" style="background:#fdfdfd"></div>';
+  
+  const td=today();
   for(let d=1;d<=days;d++){
     const date=y+"-"+String(m+1).padStart(2,"0")+"-"+String(d).padStart(2,"0");
     const es=data.entries.filter(e=>e.date===date);
-    const i=es.filter(e=>e.type==="in").reduce((a,e)=>a+e.gold,0);
-    const o=es.filter(e=>e.type==="out").reduce((a,e)=>a+e.gold,0);
-    s+=`<div class="day"><div class="num">${d}</div>${i?`<div class="income">收入 ${money(i)}</div>`:""}${o?`<div class="expense">支出 ${money(o)}</div>`:""}${i||o?`<div class="net">净 ${money(i-o)}</div>`:""}</div>`
+    const i=es.filter(e=>e.type==="in").reduce((a,e)=>a+Number(e.gold||0),0);
+    const o=es.filter(e=>e.type==="out").reduce((a,e)=>a+Number(e.gold||0),0);
+    s+=`<div class="day"><div class="num">${d}</div>${i?`<div class="income">收入 ${money(i)}</div>`:""}${o?`<div class="expense">支出 ${money(o)}</div>`:""}${i||o?`<div class="net">净 ${money(i-o)}</div>`:""}</div>`;
   }
-  calendarGrid.innerHTML=s;
+  document.getElementById("calendarGrid").innerHTML=s;
 }
+
+// ---------- 导入导出 ----------
 function exportData(){
-  const blob=new Blob([JSON.stringify({version:4,entries:data.entries,roles:data.roles,tasks:data.tasks,roleSchools:data.roleSchools,roleMinds:data.roleMinds},null,2)],{type:"application/json"});
-  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="剑网3自由收益工作台-备份.json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  const blob=new Blob([JSON.stringify({version:7,entries:data.entries,roles:data.roles,tasks:data.tasks,roleSchools:data.roleSchools,roleMinds:data.roleMinds,tenManSelections:data.tenManSelections,fiveManSelection:data.fiveManSelection,taskStates:data.taskStates},null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="剑网3自由收益工作台-备份.json"; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
 function importData(ev){
-  const file=ev.target.files[0];if(!file)return;
-  const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(!Array.isArray(x.entries)||!Array.isArray(x.roles))throw 0;data={entries:x.entries,roles:x.roles,tasks:Array.isArray(x.tasks)?x.tasks:[],roleSchools:(x.roleSchools&&typeof x.roleSchools==="object")?x.roleSchools:{},roleMinds:(x.roleMinds&&typeof x.roleMinds==="object")?x.roleMinds:{}};currentRole=data.roles[0]||"";save();alert("导入成功")}catch(e){alert("导入失败：不是有效的工作台备份文件")}};r.readAsText(file);ev.target.value="";
+  const file=ev.target.files[0]; if(!file) return;
+  const r=new FileReader(); r.onload=()=>{try{
+    const x=JSON.parse(r.result);
+    if(!Array.isArray(x.entries)||!Array.isArray(x.roles)) throw 0;
+    data={entries:x.entries,roles:x.roles,tasks:Array.isArray(x.tasks)?x.tasks:[],roleSchools:x.roleSchools||{},roleMinds:x.roleMinds||{},tenManSelections:x.tenManSelections||null,fiveManSelection:x.fiveManSelection||null,taskStates:x.taskStates||{}};
+    currentRole=data.roles[0]||""; save(); alert("导入成功");
+  }catch(e){alert("导入失败：不是有效的工作台备份文件")}}; r.readAsText(file); ev.target.value="";
 }
+
+// ---------- 角色栏与门派 ----------
 function renderRoleBar(){
   const el=document.getElementById("roleButtons");
-  el.innerHTML=data.roles.map(r=>`<div class="role-chip"><button title="门派：${esc(data.roleSchools[r]||"未设置")} · 心法：${esc(data.roleMinds[r]||"未设置")}" class="role-btn ${r===currentRole?"active":""}" onclick="selectRole('${esc(r).replace(/'/g,"\\\\'")}')">${esc(r)} <span class="school-badge">${esc(data.roleSchools[r]||"未设置")} · ${esc(data.roleMinds[r]||"未设置")}</span></button><button class="role-detail" onclick="openRoleDetail('${esc(r).replace(/'/g,"\\\\'")}')">详情</button></div>`).join("");
+  el.innerHTML=data.roles.map(r=>{
+    const safeJsStr = esc(r).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    return `<div class="role-chip"><button title="门派：${esc(data.roleSchools[r]||"未设置")} · 心法：${esc(data.roleMinds[r]||"未设置")}" class="role-btn ${r===currentRole?"active":""}" onclick="selectRole('${safeJsStr}')">${esc(r)} <span class="school-badge">${esc(data.roleSchools[r]||"未设置")} · ${esc(data.roleMinds[r]||"未设置")}</span></button><button class="role-detail" onclick="openRoleDetail('${safeJsStr}')">详情</button></div>`;
+  }).join("");
 }
 function initSchoolSelect(){
-  roleSchoolInput.innerHTML=SCHOOLS.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join("");
+  document.getElementById("roleSchoolInput").innerHTML=SCHOOLS.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join("");
   updateMindSelect();
 }
 function updateMindSelect(){
-  const school=roleSchoolInput.value;
+  const school=document.getElementById("roleSchoolInput").value;
   const minds=SCHOOL_MIND_MAP[school]||[];
-  roleMindInput.innerHTML=minds.map(m=>`<option value="${esc(m)}">${esc(m)}</option>`).join("");
-  roleMindInput.disabled=minds.length<=1;
+  document.getElementById("roleMindInput").innerHTML=minds.map(m=>`<option value="${esc(m)}">${esc(m)}</option>`).join("");
+  document.getElementById("roleMindInput").disabled=minds.length<=1;
 }
-function renderAll(){renderRoleBar();renderDashboard();renderLedger();renderTasks();renderAnalytics();renderCalendar();renderRoleDetail()}
 
-async function ocrImage(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const status = document.getElementById("ocrStatus");
-  status.textContent = "正在识别图片中的金额，请稍候…";
-  try {
-    const worker = await Tesseract.createWorker('chi_sim+eng');
-    const { data: { text } } = await worker.recognize(file);
-    await worker.terminate();
-    status.textContent = "识别完成，请核对金额";
+// ---------- OCR 智能识别 ----------
+async function ocrImage(event){
+  const file=event.target.files[0]; if(!file) return;
+  const status=document.getElementById("ocrStatus");
+  status.textContent="正在识别图片中的金额，请稍候…";
+  try{
+    const worker=await Tesseract.createWorker('chi_sim+eng');
+    const {data:{text}}=await worker.recognize(file); await worker.terminate();
+    status.textContent="识别完成，请核对金额";
+    
+    // 1. 尝试寻找“金币”所在的行，过滤掉其他杂物
+    let lines = text.split('\n');
+    let targetLine = "";
+    for(let line of lines) {
+       if(line.includes('金币') || line.includes('金 币')) {
+           targetLine = line;
+           break;
+       }
+    }
+    if(!targetLine) {
+        for(let line of lines) {
+           if(line.includes('金') || line.includes('银') || line.includes('砖')) {
+               targetLine = line;
+               break;
+           }
+        }
+    }
+    if(!targetLine) targetLine = text;
+
     let brick = 0, jin = 0, yin = 0;
-    const brickMatch = text.match(/(\d+)\s*砖/);
-    const jinMatch = text.match(/(\d+)\s*金/);
-    const yinMatch = text.match(/(\d+)\s*银/);
-    if (brickMatch) brick = parseInt(brickMatch[1]);
-    if (jinMatch) jin = parseInt(jinMatch[1]);
-    if (yinMatch) yin = parseInt(yinMatch[1]);
-    if (!brickMatch && !jinMatch && !yinMatch) {
-      const nums = text.match(/\d+/g);
-      if (nums && nums.length > 0) {
-        jin = parseInt(nums[0]) || 0;
-        if (nums.length > 1) yin = parseInt(nums[1]) || 0;
-      }
+    
+    // 2. 如果有砖金银铜的汉字，优先按汉字提取
+    const brickMatch = targetLine.match(/(\d+)\s*砖/), jinMatch = targetLine.match(/(\d+)\s*金/), yinMatch = targetLine.match(/(\d+)\s*银/);
+    if (brickMatch || jinMatch || yinMatch) {
+        if(brickMatch) brick = parseInt(brickMatch[1]);
+        if(jinMatch) jin = parseInt(jinMatch[1]);
+        if(yinMatch) yin = parseInt(yinMatch[1]);
+    } else {
+        // 3. 如果没有汉字（只有图标），提取所有数字序列
+        let nums = targetLine.match(/\d+/g);
+        if (nums && nums.length > 0) {
+            let arr = nums.map(n => parseInt(n));
+            // 剑三的金币顺序通常是 砖 金 银 铜
+            // 如果提取出 4 个数字（比如 1 6899 70 20），分别对应砖金银铜
+            if (arr.length >= 4) {
+                brick = arr[arr.length - 4];
+                jin = arr[arr.length - 3];
+                yin = arr[arr.length - 2];
+            } else if (arr.length === 3) {
+                brick = arr[0]; jin = arr[1]; yin = arr[2];
+            } else if (arr.length === 2) {
+                jin = arr[0]; yin = arr[1];
+            } else if (arr.length === 1) {
+                jin = arr[0];
+            }
+        }
     }
-    document.getElementById("entryGoldBrick").value = brick || "";
-    document.getElementById("entryGoldJin").value = jin || "";
-    document.getElementById("entryGoldYin").value = yin || "";
-    if (!brick && !jin && !yin) {
-      status.textContent = "未能自动识别金额，请手动填写。";
+    
+    document.getElementById("entryGoldBrick").value=brick||"";
+    document.getElementById("entryGoldJin").value=jin||"";
+    document.getElementById("entryGoldYin").value=yin||"";
+    
+    if(!brick && !jin && !yin) {
+        status.textContent = "未能自动识别金额，请手动填写。";
     }
-  } catch (err) {
-    console.error(err);
-    status.textContent = "识别失败，请手动填写金额。";
+  } catch(err) {
+    console.error(err); 
+    status.textContent="识别失败，请手动填写金额。";
   }
-  event.target.value = "";
+  event.target.value="";
+}
+
+function renderAll(){
+  try {
+    renderRoleBar();
+    renderDashboard();
+    renderLedger();
+    renderTasks();
+    renderAnalytics();
+    renderCalendar();
+    renderRoleDetail();
+  } catch(e) {
+    console.error("渲染发生错误：", e);
+  }
 }
 
 initSchoolSelect();
-renderAll();showPage("dashboard");
+renderAll();
+showPage("dashboard");
 </script>
 </body>
 </html>
